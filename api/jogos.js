@@ -1,6 +1,5 @@
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
 
   try {
     const headers = {
@@ -9,27 +8,18 @@ module.exports = async function handler(req, res) {
       'Accept-Language': 'pt-BR,pt;q=0.9'
     };
 
-    const [r1, r2] = await Promise.all([
-      fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers }),
-      fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers })
-    ]);
+    const r1 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers });
+    const h1 = await r1.text();
 
-    const [h1, h2] = await Promise.all([r1.text(), r2.text()]);
-
+    // retorna pedaço do HTML pra ver o que está chegando
     res.status(200).json({
-      hoje: extrair(h1),
-      amanha: extrair(h2),
-      updatedAt: new Date().toISOString(),
-      debug_h1_len: h1.length,
-      debug_h2_len: h2.length,
-      debug_h1_sample: h1.substring(0, 500)
+      status: r1.status,
+      tamanho: h1.length,
+      trecho1: h1.substring(0, 300),
+      trecho2: h1.substring(1000, 1500),
+      trecho3: h1.substring(3000, 3500)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
-
-function extrair(html) {
-  const jogos = [];
-
-  // tenta padrão HTML: <h3><strong>HHh
