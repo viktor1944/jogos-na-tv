@@ -19,7 +19,10 @@ module.exports = async function handler(req, res) {
     res.status(200).json({
       hoje: extrair(h1),
       amanha: extrair(h2),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      debug_h1_len: h1.length,
+      debug_h2_len: h2.length,
+      debug_h1_sample: h1.substring(0, 500)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -28,15 +31,5 @@ module.exports = async function handler(req, res) {
 
 function extrair(html) {
   const jogos = [];
-  const re = /###\s+\*\*(\d{1,2}h\d{2})\s*[–\-]\s*(.+?)\s*[–\-]\s*(.+?)\*\*[\s\S]{0,300}?\*\*Canais:\s*(.+?)\*\*/gi;
-  let m;
-  while ((m = re.exec(html)) !== null) {
-    jogos.push({
-      time: m[1].trim(),
-      teams: m[2].trim(),
-      league: m[3].trim(),
-      tv: m[4].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
-    });
-  }
-  return jogos;
-}
+
+  // tenta padrão HTML: <h3><strong>HHh
