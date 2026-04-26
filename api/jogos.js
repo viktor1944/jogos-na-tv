@@ -1,5 +1,6 @@
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
 
   try {
     const headers = {
@@ -8,23 +9,42 @@ module.exports = async function handler(req, res) {
       'Accept-Language': 'pt-BR,pt;q=0.9'
     };
 
-    const r1 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers });
-    const h1 = await r1.text();
+    const [r1, r2] = await Promise.all([
+      fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers }),
+      fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers })
+    ]);
 
-    // procura onde aparece "h30" ou "h00" ou "Canais" no HTML
-    const idx1 = h1.indexOf('Canais');
-    const idx2 = h1.indexOf('h30');
-    const idx3 = h1.indexOf('<h3');
+    const [h1, h2] = await Promise.all([r1.text(), r2.text()]);
 
     res.status(200).json({
-      tamanho: h1.length,
-      idx_canais: idx1,
-      idx_h30: idx2,
-      idx_h3tag: idx3,
-      trecho_canais: idx1 > 0 ? h1.substring(idx1 - 200, idx1 + 200) : 'nao encontrado',
-      trecho_h3: idx3 > 0 ? h1.substring(idx3, idx3 + 400) : 'nao encontrado'
+      hoje: extrair(h1),
+      amanha: extrair(h2),
+      updatedAt: new Date().toISOString()
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+}
+
+function extrair(html) {
+  const jogos = [];
+
+  // &#8211; é o travessão – em HTML
+  const sep = '(?:&#8211;|–|-)';
+  const re = new RegExp(
+    `<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})\\s*${sep}\\s*(.+?)\\s*${sep}\\s*(.+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>`,
+    'gi'
+  );
+
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    jogos.push({
+      time: m[1].trim(),
+      teams: m[2].trim(),
+      league: m[3].replace(/<[^>]+>/g, '').trim(),
+      tv: m[4].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+    });
+  }
+
+  return jogos;
 }
