@@ -11,13 +11,18 @@ module.exports = async function handler(req, res) {
     const r1 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers });
     const h1 = await r1.text();
 
+    // procura onde aparece "h30" ou "h00" ou "Canais" no HTML
+    const idx1 = h1.indexOf('Canais');
+    const idx2 = h1.indexOf('h30');
+    const idx3 = h1.indexOf('<h3');
+
     res.status(200).json({
-      status: r1.status,
       tamanho: h1.length,
-      t1: h1.substring(0, 300),
-      t2: h1.substring(1500, 2000),
-      t3: h1.substring(4000, 4500),
-      t4: h1.substring(6000, 6500)
+      idx_canais: idx1,
+      idx_h30: idx2,
+      idx_h3tag: idx3,
+      trecho_canais: idx1 > 0 ? h1.substring(idx1 - 200, idx1 + 200) : 'nao encontrado',
+      trecho_h3: idx3 > 0 ? h1.substring(idx3, idx3 + 400) : 'nao encontrado'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
