@@ -13,6 +13,7 @@
       --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
       --radius: 8px; --radius-lg: 12px;
       --pink: #e91e8c; --pink-light: #fce4f3;
+      --red: #e53935;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -55,17 +56,23 @@
     .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
     .chip.on .dot { background: var(--green); }
     .chip.feminino.on .dot { background: var(--pink); }
-    .chip-fem-text { color: var(--pink); font-weight: 600; }
 
-    /* checkboxes de ação */
-    .actions { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .action-cb { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 13px; }
-    .action-cb input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--green); flex-shrink: 0; }
-    .action-cb.nofem input[type=checkbox] { accent-color: #e53935; }
-    .action-cb.nofem span { color: #e53935; font-weight: 700; font-size: 13px; }
+    .actions { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+    /* Checkbox customizado */
+    .cb-row { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+    .cb-box {
+      width: 17px; height: 17px; border-radius: 4px; border: 2px solid var(--border2);
+      background: var(--surface); display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.15s; font-size: 11px; color: white;
+    }
+    .cb-row.checked .cb-box { background: var(--green); border-color: var(--green); }
+    .cb-row.nofem.checked .cb-box { background: var(--red); border-color: var(--red); }
+    .cb-row span { font-size: 13px; color: var(--text2); }
+    .cb-row.nofem span { color: var(--red); font-weight: 700; font-size: 13px; }
 
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
-    .glist { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+    .glist { display: flex; flex-direction: column; gap: 5px; }
     .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; }
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; padding-top: 1px; }
     .gm { flex: 1; min-width: 0; }
@@ -108,15 +115,18 @@
     <div class="leagues-lbl">Campeonatos <span id="lcnt"></span></div>
     <div class="chips" id="chps"></div>
     <div class="actions">
-      <label class="action-cb">
-        <input type="checkbox" id="cbAll" onchange="onCbAll(this)"/> <span>Marcar todos</span>
-      </label>
-      <label class="action-cb">
-        <input type="checkbox" id="cbNone" onchange="onCbNone(this)"/> <span>Desmarcar todos</span>
-      </label>
-      <label class="action-cb nofem">
-        <input type="checkbox" id="cbNoFem" onchange="onCbNoFem(this)"/> <span>🚫 Não quero ver NADA de futebol feminino!</span>
-      </label>
+      <div class="cb-row" id="rowAll" onclick="onAll()">
+        <div class="cb-box" id="boxAll"></div>
+        <span>Marcar todos</span>
+      </div>
+      <div class="cb-row" id="rowNone" onclick="onNone()">
+        <div class="cb-box" id="boxNone"></div>
+        <span>Desmarcar todos</span>
+      </div>
+      <div class="cb-row nofem" id="rowNoFem" onclick="onNoFem()">
+        <div class="cb-box" id="boxNoFem"></div>
+        <span>🚫 Não quero ver NADA de futebol feminino! 😂</span>
+      </div>
     </div>
   </div>
 
@@ -135,16 +145,14 @@
   var tab = 'hoje';
   var active = new Set();
   var leagues = new Set();
-  var STORAGE_KEY = 'jogos_desativados';
-  var STORAGE_NOFEM = 'jogos_nofem';
+  var noFem = false;
 
-  // Ordem de prioridade dos campeonatos (quanto menor o índice, mais importante)
   var PRIORITY = [
-    'copa do mundo', 'mundial de clubes', 'champions league', 'libertadores',
-    'eurocopa', 'copa america', 'copa américa', 'brasileirao', 'brasileirão',
-    'serie a', 'série a', 'serie b', 'série b', 'copa do brasil',
-    'sulamericana', 'sul-americana', 'premier league', 'la liga', 'laliga',
-    'bundesliga', 'serie a italiana', 'serie a italia'
+    'copa do mundo','mundial de clubes','champions league','libertadores',
+    'eurocopa','copa america','copa américa','brasileirao','brasileirão',
+    'serie a','série a','serie b','série b','copa do brasil',
+    'sulamericana','sul-americana','premier league','la liga','laliga',
+    'bundesliga'
   ];
 
   function leaguePriority(name) {
@@ -155,192 +163,162 @@
     return 999;
   }
 
-  function isFeminino(name) {
-    return name.toLowerCase().indexOf('feminino') !== -1 ||
-           name.toLowerCase().indexOf('feminina') !== -1 ||
-           name.toLowerCase().indexOf('nwsl') !== -1 ||
-           name.toLowerCase().indexOf('inglês feminino') !== -1;
+  function isFem(name) {
+    var n = (name || '').toLowerCase();
+    return n.indexOf('feminino') !== -1 || n.indexOf('feminina') !== -1 ||
+           n.indexOf('nwsl') !== -1 || n.indexOf('inglês feminino') !== -1 ||
+           n.indexOf('ingles feminino') !== -1;
   }
 
   function loadSaved() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+    try { return JSON.parse(localStorage.getItem('jogos_off') || '[]'); } catch(e) { return []; }
   }
-
   function loadNoFem() {
-    try { return localStorage.getItem(STORAGE_NOFEM) === 'true'; } catch(e) { return false; }
+    try { return localStorage.getItem('jogos_nofem') === 'true'; } catch(e) { return false; }
   }
-
   function savePref() {
     try {
-      var desativados = Array.from(leagues).filter(function(l) { return !active.has(l); });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(desativados));
-      localStorage.setItem(STORAGE_NOFEM, noFem ? 'true' : 'false');
-    } catch(e) {}
+      var off = Array.from(leagues).filter(function(l){ return !active.has(l); });
+      localStorage.setItem('jogos_off', JSON.stringify(off));
+      localStorage.setItem('jogos_nofem', noFem ? 'true' : 'false');
+    } catch(e){}
   }
-
-  var noFem = loadNoFem();
 
   function sw(t) {
     tab = t;
-    document.getElementById('tH').className = 'tab' + (t === 'hoje' ? ' on' : '');
-    document.getElementById('tA').className = 'tab' + (t === 'amanha' ? ' on' : '');
+    document.getElementById('tH').className = 'tab'+(t==='hoje'?' on':'');
+    document.getElementById('tA').className = 'tab'+(t==='amanha'?' on':'');
     buildLeagues(); render();
   }
 
   function buildLeagues() {
-    leagues = new Set(data[tab].map(function(g) { return g.league; }).filter(Boolean));
-    var desativados = loadSaved();
+    leagues = new Set(data[tab].map(function(g){ return g.league; }).filter(Boolean));
+    var off = loadSaved();
     active = new Set();
-    leagues.forEach(function(l) {
-      if (desativados.indexOf(l) === -1) active.add(l);
+    leagues.forEach(function(l){
+      if (off.indexOf(l) === -1) active.add(l);
     });
-    // aplica filtro feminino salvo
-    if (noFem) {
-      leagues.forEach(function(l) { if (isFeminino(l)) active.delete(l); });
-    }
+    if (noFem) leagues.forEach(function(l){ if(isFem(l)) active.delete(l); });
   }
 
-  function onCbAll(cb) {
-    if (cb.checked) {
-      leagues.forEach(function(l) {
-        if (!noFem || !isFeminino(l)) active.add(l);
-      });
-      document.getElementById('cbNone').checked = false;
-    }
+  function onAll() {
+    leagues.forEach(function(l){ if(!noFem||!isFem(l)) active.add(l); });
     savePref(); render();
-    cb.checked = false; // reset visual
   }
 
-  function onCbNone(cb) {
-    if (cb.checked) {
-      active.clear();
-      document.getElementById('cbAll').checked = false;
-    }
+  function onNone() {
+    active.clear();
     savePref(); render();
-    cb.checked = false;
   }
 
-  function onCbNoFem(cb) {
-    noFem = cb.checked;
-    if (noFem) {
-      leagues.forEach(function(l) { if (isFeminino(l)) active.delete(l); });
-    }
+  function onNoFem() {
+    noFem = !noFem;
+    if (noFem) leagues.forEach(function(l){ if(isFem(l)) active.delete(l); });
     savePref(); render();
   }
 
   function timeToMin(t) {
-    var parts = t.replace('h', ':').split(':');
-    return parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
+    var p = t.replace('h',':').split(':');
+    return parseInt(p[0])*60 + parseInt(p[1]||0);
   }
 
-  function formatLeague(name) {
-    if (isFeminino(name)) {
-      return name.replace(/(feminino|feminina)/gi, '<span style="color:var(--pink);font-weight:600">$1</span>');
-    }
-    return name;
+  function fmtLeague(name) {
+    return name.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>');
   }
 
   function render() {
-    // atualiza checkbox nofem
-    document.getElementById('cbNoFem').checked = noFem;
+    // atualiza checkboxes
+    var allOn = Array.from(leagues).filter(function(l){ return !noFem||!isFem(l); }).every(function(l){ return active.has(l); });
+    var noneOn = active.size === 0;
 
+    var rAll = document.getElementById('rowAll');
+    var rNone = document.getElementById('rowNone');
+    var rFem = document.getElementById('rowNoFem');
+
+    rAll.className = 'cb-row' + (allOn ? ' checked' : '');
+    document.getElementById('boxAll').textContent = allOn ? '✓' : '';
+    rNone.className = 'cb-row' + (noneOn ? ' checked' : '');
+    document.getElementById('boxNone').textContent = noneOn ? '✓' : '';
+    rFem.className = 'cb-row nofem' + (noFem ? ' checked' : '');
+    document.getElementById('boxNoFem').textContent = noFem ? '✓' : '';
+
+    // chips
     var lbox = document.getElementById('chps');
     var wrap = document.getElementById('leaguesWrap');
     lbox.innerHTML = '';
+    if (leagues.size === 0) { wrap.style.display='none'; return; }
+    wrap.style.display = 'block';
 
-    if (leagues.size === 0) {
-      wrap.style.display = 'none';
-    } else {
-      wrap.style.display = 'block';
+    var sorted = Array.from(leagues).sort(function(a,b){
+      var fa=isFem(a), fb=isFem(b);
+      if(fa&&!fb) return 1; if(!fa&&fb) return -1;
+      var pa=leaguePriority(a), pb=leaguePriority(b);
+      if(pa!==pb) return pa-pb;
+      return a.localeCompare(b);
+    });
 
-      // ordena: prioritários primeiro, depois alfabético, femininos por último
-      var sorted = Array.from(leagues).sort(function(a, b) {
-        var fa = isFeminino(a), fb = isFeminino(b);
-        if (fa && !fb) return 1;
-        if (!fa && fb) return -1;
-        var pa = leaguePriority(a), pb = leaguePriority(b);
-        if (pa !== pb) return pa - pb;
-        return a.localeCompare(b);
-      });
+    sorted.forEach(function(l){
+      var fem = isFem(l);
+      var c = document.createElement('div');
+      c.className = 'chip'+(active.has(l)?' on':'')+(fem?' feminino':'');
+      c.innerHTML = '<span class="dot"></span>' + (fem ? l.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>') : l);
+      c.onclick = function(){ active.has(l)?active.delete(l):active.add(l); savePref(); render(); };
+      lbox.appendChild(c);
+    });
+    document.getElementById('lcnt').textContent = active.size+'/'+leagues.size;
 
-      sorted.forEach(function(l) {
-        var fem = isFeminino(l);
-        var c = document.createElement('div');
-        c.className = 'chip' + (active.has(l) ? ' on' : '') + (fem ? ' feminino' : '');
-        var label = fem
-          ? l.replace(/(feminino|feminina)/gi, '<span class="chip-fem-text">$1</span>')
-          : l;
-        c.innerHTML = '<span class="dot"></span>' + label;
-        c.onclick = function() {
-          active.has(l) ? active.delete(l) : active.add(l);
-          savePref(); render();
-        };
-        lbox.appendChild(c);
-      });
-
-      document.getElementById('lcnt').textContent = active.size + '/' + leagues.size;
-    }
-
+    // jogos
     var games = data[tab]
-      .filter(function(g) { return !g.league || active.has(g.league); })
-      .sort(function(a, b) { return timeToMin(a.time) - timeToMin(b.time); });
+      .filter(function(g){ return !g.league||active.has(g.league); })
+      .sort(function(a,b){ return timeToMin(a.time)-timeToMin(b.time); });
 
-    document.getElementById('stat').textContent = games.length + ' jogo' + (games.length !== 1 ? 's' : '') + ' · mantosdofutebol.com.br';
+    document.getElementById('stat').textContent = games.length+' jogo'+(games.length!==1?'s':'')+' · mantosdofutebol.com.br';
 
-    var h = '';
     if (!games.length) {
-      h = '<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>';
-    } else {
-      h += '<div class="glist">';
-      games.forEach(function(g) {
-        var fem = isFeminino(g.league || '');
-        h += '<div class="gc">' +
-          '<div class="gt">' + g.time + '</div>' +
-          '<div class="gm">' +
-            '<div class="gn">' + g.teams + '</div>' +
-            '<div class="gl' + (fem ? ' fem' : '') + '">' + formatLeague(g.league || '') + '</div>' +
-            (g.tv ? '<div class="gtv">' + g.tv + '</div>' : '') +
-          '</div>' +
-        '</div>';
-      });
-      h += '</div>';
+      document.getElementById('out').innerHTML = '<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>';
+      return;
     }
+    var h = '<div class="glist">';
+    games.forEach(function(g){
+      var fem = isFem(g.league||'');
+      h += '<div class="gc"><div class="gt">'+g.time+'</div><div class="gm">'+
+        '<div class="gn">'+g.teams+'</div>'+
+        '<div class="gl'+(fem?' fem':'')+'">'+fmtLeague(g.league||'')+'</div>'+
+        (g.tv?'<div class="gtv">'+g.tv+'</div>':'')+
+        '</div></div>';
+    });
+    h += '</div>';
     document.getElementById('out').innerHTML = h;
   }
 
   async function load() {
-    var btn = document.getElementById('refBtn');
-    var icon = document.getElementById('refIcon');
-    btn.disabled = true;
-    icon.className = 'spin';
-    document.getElementById('errorBox').style.display = 'none';
-    document.getElementById('out').innerHTML = '<div class="loading"><div class="loading-spinner"></div><div>Bombacha buscando os jogos...</div></div>';
-    document.getElementById('leaguesWrap').style.display = 'none';
-    document.getElementById('stat').textContent = '';
-
+    var btn=document.getElementById('refBtn'), icon=document.getElementById('refIcon');
+    btn.disabled=true; icon.className='spin';
+    document.getElementById('errorBox').style.display='none';
+    document.getElementById('out').innerHTML='<div class="loading"><div class="loading-spinner"></div><div>Bombacha buscando os jogos...</div></div>';
+    document.getElementById('leaguesWrap').style.display='none';
+    document.getElementById('stat').textContent='';
     try {
       var res = await fetch('/api/jogos');
-      if (!res.ok) throw new Error('Erro ' + res.status);
+      if(!res.ok) throw new Error('Erro '+res.status);
       var json = await res.json();
-      data.hoje = json.hoje || [];
-      data.amanha = json.amanha || [];
-      if (json.updatedAt) {
-        var d = new Date(json.updatedAt);
-        document.getElementById('updatedAt').textContent = 'com Bombacha · atualizado ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      data.hoje=json.hoje||[]; data.amanha=json.amanha||[];
+      noFem = loadNoFem();
+      if(json.updatedAt){
+        var d=new Date(json.updatedAt);
+        document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
       }
       buildLeagues(); render();
-    } catch (e) {
-      document.getElementById('out').innerHTML = '';
-      document.getElementById('errorBox').style.display = 'block';
-      document.getElementById('errorBox').textContent = 'Erro ao buscar jogos: ' + e.message;
+    } catch(e) {
+      document.getElementById('out').innerHTML='';
+      document.getElementById('errorBox').style.display='block';
+      document.getElementById('errorBox').textContent='Erro ao buscar jogos: '+e.message;
     }
-
-    btn.disabled = false;
-    icon.className = '';
+    btn.disabled=false; icon.className='';
   }
 
   load();
-  setInterval(load, 60 * 60 * 1000);
+  setInterval(load, 60*60*1000);
 </script>
 </body>
 </html>
