@@ -9,19 +9,10 @@ module.exports = async function handler(req, res) {
       'Accept-Language': 'pt-BR,pt;q=0.9'
     };
 
-    const fetchComTimeout = (url) => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      return fetch(url, { headers, signal: controller.signal })
-        .finally(() => clearTimeout(timeout));
-    };
-
-    const [r1, r2] = await Promise.all([
-      fetchComTimeout('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/'),
-      fetchComTimeout('https://mantosdofutebol.com.br/jogos-de-amanha-tv/')
-    ]);
-
-    const [h1, h2] = await Promise.all([r1.text(), r2.text()]);
+    const r1 = await fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers });
+    const r2 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers });
+    const h1 = await r1.text();
+    const h2 = await r2.text();
 
     res.status(200).json({
       hoje: extrair(h1),
@@ -29,35 +20,33 @@ module.exports = async function handler(req, res) {
       updatedAt: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ error: err.message, type: err.name });
+    res.status(500).json({ error: err.message });
   }
 };
 
 function extrair(html) {
-  const jogos = [];
-  const sep = '(?:&#8211;|\u2013|-)';
-  const re = new RegExp(
-    '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})\\s*' + sep + '\\s*(.+?)\\s*' + sep + '\\s*([^<]+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>',
-    'gi'
-  );
+  var jogos = [];
+  var sep = '(?:&#8211;|&#8212;|-)';
+  var pattern = '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})\\s*' + sep + '\\s*(.+?)\\s*' + sep + '\\s*([^<]+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
+  var re = new RegExp(pattern, 'gi');
+  var m;
 
-  let m;
   while ((m = re.exec(html)) !== null) {
-    const time = m[1].trim();
-    let teams = m[2].trim();
-    let league = m[3].replace(/<[^>]+>/g, '').trim();
-    const tv = m[4].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    var time = m[1].trim();
+    var teams = m[2].trim();
+    var league = m[3].replace(/<[^>]+>/g, '').trim();
+    var tv = m[4].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
-    if (league.toLowerCase().includes(' x ')) {
-      const full = teams + ' \u2013 ' + league;
-      const lastDash = full.lastIndexOf('\u2013');
+    if (league.indexOf(' x ') !== -1) {
+      var full = teams + ' - ' + league;
+      var lastDash = full.lastIndexOf(' - ');
       if (lastDash > 0) {
         teams = full.substring(0, lastDash).trim();
-        league = full.substring(lastDash + 1).trim();
+        league = full.substring(lastDash + 3).trim();
       }
     }
 
-    jogos.push({ time, teams, league, tv });
+    jogos.push({ time: time, teams: teams, league: league, tv: tv });
   }
 
   return jogos;
