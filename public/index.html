@@ -23,59 +23,39 @@
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
     .container { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 5rem; }
-
-    /* HEADER */
     .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; }
     .header-left { display: flex; align-items: center; gap: 12px; }
     h1 { font-size: 20px; font-weight: 600; }
     .subtitle { font-size: 12px; color: var(--text3); margin-top: 1px; }
-
-    /* BOMBACHA HEADER */
     .bombacha-header {
       width: 52px; height: 52px; border-radius: 50%;
       border: 2.5px solid var(--green);
       overflow: hidden; flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(29,158,117,0.3);
-      transition: transform 0.2s;
-      cursor: pointer;
+      transition: transform 0.2s; cursor: pointer;
     }
     .bombacha-header:hover { transform: scale(1.08) rotate(-3deg); }
-    .bombacha-header svg { width: 100%; height: 100%; }
-
-    /* BOMBACHA FLUTUANTE */
+    .bombacha-header img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
     .bombacha-float {
       position: fixed; bottom: 22px; right: 22px; z-index: 999;
       cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
     .bombacha-float-img {
       width: 68px; height: 68px; border-radius: 50%;
-      border: 3px solid var(--green);
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-      transition: transform 0.2s;
+      border: 3px solid var(--green); overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25); transition: transform 0.2s;
     }
     .bombacha-float:hover .bombacha-float-img { transform: scale(1.1) rotate(5deg); }
-    .bombacha-float-img svg { width: 100%; height: 100%; }
-    .bombacha-label {
-      background: var(--green); color: white;
-      font-size: 10px; font-weight: 700;
-      padding: 2px 8px; border-radius: 10px;
-      letter-spacing: 0.05em;
-    }
-
-    /* REFRESH BTN */
+    .bombacha-float-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+    .bombacha-label { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.05em; }
     .refresh-btn { padding: 7px 14px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
     .refresh-btn:hover { background: var(--surface2); }
     .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .spin { display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* TABS */
     .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; width: fit-content; margin-bottom: 1.25rem; }
     .tab { padding: 8px 22px; font-size: 14px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; }
     .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
-
-    /* LEAGUES */
     .leagues-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 1.25rem; }
     .leagues-lbl { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -85,16 +65,24 @@
     .chip.on .dot { background: var(--green); }
     .qbtns { display: flex; gap: 12px; margin-top: 8px; }
     .qbtn { font-size: 12px; color: var(--text3); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; }
-
-    /* GAMES */
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .sec { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; padding: 10px 0 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
     .glist { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
-    .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 12px; }
-    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; }
+    .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; padding-top: 1px; }
     .gm { flex: 1; min-width: 0; }
-    .gn { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .gtv { font-size: 11px; color: var(--text2); background: var(--surface2); border-radius: 4px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+    .gn { font-size: 14px; font-weight: 500; color: var(--text); }
+    .gtv {
+      font-size: 11px; color: var(--text2);
+      background: var(--surface2);
+      border-radius: 4px;
+      padding: 3px 8px;
+      margin-top: 4px;
+      display: inline-block;
+      word-break: break-word;
+      white-space: normal;
+      max-width: 100%;
+    }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
     .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -102,50 +90,11 @@
   </style>
 </head>
 <body>
-
-<!-- SVG do Bombacha reutilizável -->
-<svg style="display:none">
-  <symbol id="bombacha-svg" viewBox="0 0 100 100">
-    <!-- fundo chapeu -->
-    <circle cx="50" cy="50" r="50" fill="#c8823a"/>
-    <!-- chapeu aba -->
-    <ellipse cx="50" cy="28" rx="38" ry="7" fill="#5c2d00"/>
-    <!-- chapeu topo -->
-    <rect x="32" y="8" width="36" height="22" rx="6" fill="#6B3410"/>
-    <!-- rosto -->
-    <circle cx="50" cy="55" r="22" fill="#f5c89a"/>
-    <!-- barba -->
-    <ellipse cx="50" cy="68" rx="16" ry="10" fill="#e0e0d8"/>
-    <!-- bigode -->
-    <path d="M42 60 Q50 65 58 60" stroke="#b0b0a0" stroke-width="2" fill="#d8d8d0"/>
-    <!-- olhos -->
-    <circle cx="43" cy="52" r="3" fill="#3a2000"/>
-    <circle cx="57" cy="52" r="3" fill="#3a2000"/>
-    <!-- brilho olhos -->
-    <circle cx="44" cy="51" r="1" fill="white"/>
-    <circle cx="58" cy="51" r="1" fill="white"/>
-    <!-- sobrancelhas -->
-    <path d="M40 48 Q43 46 46 48" stroke="#5c2d00" stroke-width="1.5" fill="none"/>
-    <path d="M54 48 Q57 46 60 48" stroke="#5c2d00" stroke-width="1.5" fill="none"/>
-    <!-- nariz -->
-    <ellipse cx="50" cy="57" rx="3" ry="2" fill="#e0a070"/>
-    <!-- sorriso -->
-    <path d="M44 63 Q50 68 56 63" stroke="#8B4513" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    <!-- camisa -->
-    <ellipse cx="50" cy="88" rx="28" ry="16" fill="#f0f0e8"/>
-    <!-- escrita Bombacha -->
-    <text x="50" y="91" font-family="Arial" font-size="7" text-anchor="middle" fill="#c0392b" font-weight="bold">Bombacha</text>
-    <!-- gravata -->
-    <path d="M47 75 L50 72 L53 75 L51 88 L49 88 Z" fill="#8B1a1a"/>
-    <path d="M47 75 L50 72 L53 75" fill="#c0392b"/>
-  </symbol>
-</svg>
-
 <div class="container">
   <div class="header">
     <div class="header-left">
       <div class="bombacha-header" title="Bombacha - seu guia de jogos!">
-        <svg><use href="#bombacha-svg"/></svg>
+        <img src="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg" alt="Bombacha"/>
       </div>
       <div>
         <h1>Jogos na TV</h1>
@@ -177,10 +126,9 @@
   <div id="out"></div>
 </div>
 
-<!-- Bombacha flutuante -->
 <div class="bombacha-float" onclick="load()" title="Atualizar jogos">
   <div class="bombacha-float-img">
-    <svg><use href="#bombacha-svg"/></svg>
+    <img src="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg" alt="Bombacha"/>
   </div>
   <div class="bombacha-label">AO VIVO</div>
 </div>
@@ -241,7 +189,13 @@
       Object.keys(byL).sort().forEach(function(l) {
         h += '<div class="sec">' + l + '</div><div class="glist">';
         byL[l].forEach(function(g) {
-          h += '<div class="gc"><div class="gt">' + g.time + '</div><div class="gm"><div class="gn">' + g.teams + '</div></div>' + (g.tv ? '<div class="gtv">' + g.tv + '</div>' : '') + '</div>';
+          h += '<div class="gc">' +
+            '<div class="gt">' + g.time + '</div>' +
+            '<div class="gm">' +
+              '<div class="gn">' + g.teams + '</div>' +
+              (g.tv ? '<div class="gtv">' + g.tv + '</div>' : '') +
+            '</div>' +
+          '</div>';
         });
         h += '</div>';
       });
