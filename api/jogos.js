@@ -1,6 +1,3 @@
-Erro de sintaxe no código. Vou mandar o arquivo completo de uma vez pra não ter erro de colagem. Edita o `api/jogos.js` no GitHub e substitui **tudo** por isso:
-
-```javascript
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
@@ -12,9 +9,16 @@ module.exports = async function handler(req, res) {
       'Accept-Language': 'pt-BR,pt;q=0.9'
     };
 
+    const fetchComTimeout = (url) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      return fetch(url, { headers, signal: controller.signal })
+        .finally(() => clearTimeout(timeout));
+    };
+
     const [r1, r2] = await Promise.all([
-      fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers }),
-      fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers })
+      fetchComTimeout('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/'),
+      fetchComTimeout('https://mantosdofutebol.com.br/jogos-de-amanha-tv/')
     ]);
 
     const [h1, h2] = await Promise.all([r1.text(), r2.text()]);
@@ -25,13 +29,13 @@ module.exports = async function handler(req, res) {
       updatedAt: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, type: err.name });
   }
 };
 
 function extrair(html) {
   const jogos = [];
-  const sep = '(?:&#8211;|\\u2013|-)';
+  const sep = '(?:&#8211;|\u2013|-)';
   const re = new RegExp(
     '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})\\s*' + sep + '\\s*(.+?)\\s*' + sep + '\\s*([^<]+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>',
     'gi'
@@ -58,6 +62,3 @@ function extrair(html) {
 
   return jogos;
 }
-```
-
-Salva e commit!
