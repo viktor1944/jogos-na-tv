@@ -27,24 +27,11 @@
     .header-left { display: flex; align-items: center; gap: 12px; }
     h1 { font-size: 20px; font-weight: 600; }
     .subtitle { font-size: 12px; color: var(--text3); margin-top: 1px; }
-    .bombacha-header {
-      width: 52px; height: 52px; border-radius: 50%;
-      border: 2.5px solid var(--green);
-      overflow: hidden; flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(29,158,117,0.3);
-      transition: transform 0.2s; cursor: pointer;
-    }
+    .bombacha-header { width: 52px; height: 52px; border-radius: 50%; border: 2.5px solid var(--green); overflow: hidden; flex-shrink: 0; box-shadow: 0 2px 8px rgba(29,158,117,0.3); transition: transform 0.2s; cursor: pointer; }
     .bombacha-header:hover { transform: scale(1.08) rotate(-3deg); }
     .bombacha-header img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
-    .bombacha-float {
-      position: fixed; bottom: 22px; right: 22px; z-index: 999;
-      cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .bombacha-float-img {
-      width: 68px; height: 68px; border-radius: 50%;
-      border: 3px solid var(--green); overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25); transition: transform 0.2s;
-    }
+    .bombacha-float { position: fixed; bottom: 22px; right: 22px; z-index: 999; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bombacha-float-img { width: 68px; height: 68px; border-radius: 50%; border: 3px solid var(--green); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.25); transition: transform 0.2s; }
     .bombacha-float:hover .bombacha-float-img { transform: scale(1.1) rotate(5deg); }
     .bombacha-float-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
     .bombacha-label { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.05em; }
@@ -66,23 +53,13 @@
     .qbtns { display: flex; gap: 12px; margin-top: 8px; }
     .qbtn { font-size: 12px; color: var(--text3); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; }
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
-    .sec { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; padding: 10px 0 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
     .glist { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
-    .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; }
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; padding-top: 1px; }
     .gm { flex: 1; min-width: 0; }
     .gn { font-size: 14px; font-weight: 500; color: var(--text); }
-    .gtv {
-      font-size: 11px; color: var(--text2);
-      background: var(--surface2);
-      border-radius: 4px;
-      padding: 3px 8px;
-      margin-top: 4px;
-      display: inline-block;
-      word-break: break-word;
-      white-space: normal;
-      max-width: 100%;
-    }
+    .gl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .gtv { font-size: 11px; color: var(--text2); background: var(--surface2); border-radius: 4px; padding: 3px 8px; margin-top: 4px; display: inline-block; word-break: break-word; white-space: normal; }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
     .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -138,6 +115,23 @@
   var tab = 'hoje';
   var active = new Set();
   var leagues = new Set();
+  var STORAGE_KEY = 'jogos_desativados';
+
+  // Carrega campeonatos desativados do localStorage
+  function loadSaved() {
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch(e) { return []; }
+  }
+
+  // Salva campeonatos desativados no localStorage
+  function savePref() {
+    try {
+      var desativados = Array.from(leagues).filter(function(l) { return !active.has(l); });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(desativados));
+    } catch(e) {}
+  }
 
   function sw(t) {
     tab = t;
@@ -148,11 +142,21 @@
 
   function buildLeagues() {
     leagues = new Set(data[tab].map(function(g) { return g.league; }).filter(Boolean));
-    active = new Set(Array.from(leagues));
+    var desativados = loadSaved();
+    active = new Set();
+    leagues.forEach(function(l) {
+      if (desativados.indexOf(l) === -1) active.add(l);
+    });
   }
 
-  function all() { leagues.forEach(function(l) { active.add(l); }); render(); }
-  function none() { active.clear(); render(); }
+  function all() { leagues.forEach(function(l) { active.add(l); }); savePref(); render(); }
+  function none() { active.clear(); savePref(); render(); }
+
+  function timeToMin(t) {
+    // converte "18h30" em minutos pra ordenar
+    var parts = t.replace('h', ':').split(':');
+    return parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
+  }
 
   function render() {
     var lbox = document.getElementById('chps');
@@ -166,39 +170,39 @@
         var c = document.createElement('div');
         c.className = 'chip' + (active.has(l) ? ' on' : '');
         c.innerHTML = '<span class="dot"></span>' + l;
-        c.onclick = function() { active.has(l) ? active.delete(l) : active.add(l); render(); };
+        c.onclick = function() {
+          active.has(l) ? active.delete(l) : active.add(l);
+          savePref();
+          render();
+        };
         lbox.appendChild(c);
       });
       document.getElementById('lcnt').textContent = active.size + '/' + leagues.size;
     }
 
-    var games = data[tab].filter(function(g) { return !g.league || active.has(g.league); });
-    document.getElementById('stat').textContent = games.length + ' jogo' + (games.length !== 1 ? 's' : '') + ' · mantosdofutebol.com.br';
+    // filtra e ordena por horário
+    var games = data[tab]
+      .filter(function(g) { return !g.league || active.has(g.league); })
+      .sort(function(a, b) { return timeToMin(a.time) - timeToMin(b.time); });
 
-    var byL = {};
-    games.forEach(function(g) {
-      var k = g.league || 'Outros';
-      if (!byL[k]) byL[k] = [];
-      byL[k].push(g);
-    });
+    document.getElementById('stat').textContent = games.length + ' jogo' + (games.length !== 1 ? 's' : '') + ' · mantosdofutebol.com.br';
 
     var h = '';
     if (!games.length) {
       h = '<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>';
     } else {
-      Object.keys(byL).sort().forEach(function(l) {
-        h += '<div class="sec">' + l + '</div><div class="glist">';
-        byL[l].forEach(function(g) {
-          h += '<div class="gc">' +
-            '<div class="gt">' + g.time + '</div>' +
-            '<div class="gm">' +
-              '<div class="gn">' + g.teams + '</div>' +
-              (g.tv ? '<div class="gtv">' + g.tv + '</div>' : '') +
-            '</div>' +
-          '</div>';
-        });
-        h += '</div>';
+      h += '<div class="glist">';
+      games.forEach(function(g) {
+        h += '<div class="gc">' +
+          '<div class="gt">' + g.time + '</div>' +
+          '<div class="gm">' +
+            '<div class="gn">' + g.teams + '</div>' +
+            '<div class="gl">' + g.league + '</div>' +
+            (g.tv ? '<div class="gtv">' + g.tv + '</div>' : '') +
+          '</div>' +
+        '</div>';
       });
+      h += '</div>';
     }
     document.getElementById('out').innerHTML = h;
   }
