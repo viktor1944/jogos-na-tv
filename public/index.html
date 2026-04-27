@@ -52,6 +52,21 @@
     .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; width: fit-content; margin-bottom: 1.25rem; }
     .tab { padding: 8px 22px; font-size: 14px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; }
     .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
+
+    /* TIME FAVORITO */
+    .fav-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 1.25rem; }
+    .fav-lbl { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .fav-lbl span { font-size: 14px; }
+    .fav-input-row { display: flex; gap: 8px; }
+    .fav-input { flex: 1; padding: 7px 10px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text); outline: none; }
+    .fav-input:focus { border-color: var(--green); }
+    .fav-add { padding: 7px 14px; font-size: 13px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; transition: opacity 0.15s; }
+    .fav-add:hover { opacity: 0.85; }
+    .fav-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .fav-tag { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: var(--surface); border: 2px solid var(--red); font-size: 12px; color: var(--red); font-weight: 600; }
+    .fav-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 14px; line-height: 1; padding: 0; margin-left: 2px; }
+
+    /* LEAGUES */
     .leagues-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 1.25rem; }
     .leagues-lbl { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -69,9 +84,17 @@
     .cb-row.nofem.checked .cb-box { background: var(--red); border-color: var(--red); }
     .cb-row span { font-size: 13px; color: var(--text2); }
     .cb-row.nofem span { color: var(--red); font-weight: 700; }
+
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .glist { display: flex; flex-direction: column; gap: 5px; }
-    .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; }
+    .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; transition: all 0.15s; }
+    /* jogo do time favorito */
+    .gc.favorito { background: #fff5f5; border: 2px solid var(--red); box-shadow: 0 2px 12px rgba(229,57,53,0.15); }
+    .gc.favorito .gt { color: var(--red); }
+    .fav-badge { font-size: 10px; font-weight: 700; color: var(--red); background: #ffe0e0; border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+    @media (prefers-color-scheme: dark) {
+      .gc.favorito { background: #2a0a0a; border-color: var(--red); }
+    }
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; padding-top: 1px; }
     .gm { flex: 1; min-width: 0; }
     .gn { font-size: 14px; font-weight: 500; color: var(--text); }
@@ -102,8 +125,18 @@
   </div>
 
   <div class="tabs">
-    <button class="tab on" onclick="sw('hoje')" id="tH">Hoje</button>
-    <button class="tab" onclick="sw('amanha')" id="tA">Amanhã</button>
+    <button class="tab on" onclick="swTab('hoje')" id="tH">Hoje</button>
+    <button class="tab" onclick="swTab('amanha')" id="tA">Amanhã</button>
+  </div>
+
+  <!-- TIME FAVORITO -->
+  <div class="fav-wrap">
+    <div class="fav-lbl"><span>⭐</span> Meu time favorito</div>
+    <div class="fav-input-row">
+      <input class="fav-input" id="favInput" type="text" placeholder="Ex: Flamengo, Corinthians..." onkeydown="if(event.key==='Enter')addFav()"/>
+      <button class="fav-add" onclick="addFav()">+ Adicionar</button>
+    </div>
+    <div class="fav-tags" id="favTags"></div>
   </div>
 
   <div id="errorBox" class="error" style="display:none;"></div>
@@ -144,13 +177,13 @@
   var active = new Set();
   var leagues = new Set();
   var noFem = false;
+  var favTimes = [];
 
   var PRIORITY = [
     'copa do mundo','mundial de clubes','champions league','libertadores',
     'eurocopa','copa america','copa américa','brasileirao','brasileirão',
     'serie a','série a','serie b','série b','copa do brasil',
-    'sulamericana','sul-americana','premier league','la liga','laliga',
-    'bundesliga'
+    'sulamericana','sul-americana','premier league','la liga','laliga','bundesliga'
   ];
 
   function leaguePriority(name) {
@@ -163,25 +196,63 @@
 
   function isFem(name) {
     var n = (name||'').toLowerCase();
-    return n.indexOf('feminino')!==-1 || n.indexOf('feminina')!==-1 ||
-           n.indexOf('nwsl')!==-1 || n.indexOf('inglês feminino')!==-1;
+    return n.indexOf('feminino')!==-1||n.indexOf('feminina')!==-1||n.indexOf('nwsl')!==-1;
   }
 
-  function loadSaved() {
-    try { return JSON.parse(localStorage.getItem('jogos_off')||'[]'); } catch(e) { return []; }
+  function isFavGame(teams) {
+    if (!favTimes.length) return false;
+    var t = (teams||'').toLowerCase();
+    return favTimes.some(function(f){ return t.indexOf(f.toLowerCase())!==-1; });
   }
-  function loadNoFem() {
-    try { return localStorage.getItem('jogos_nofem')==='true'; } catch(e) { return false; }
+
+  function isFavGameFem(teams, league) {
+    // só destaca se não tiver noFem ativo OU se o jogo NÃO for feminino
+    if (noFem && isFem(league)) return false;
+    return isFavGame(teams);
   }
+
+  function loadSaved() { try { return JSON.parse(localStorage.getItem('jogos_off')||'[]'); } catch(e){ return []; } }
+  function loadNoFem() { try { return localStorage.getItem('jogos_nofem')==='true'; } catch(e){ return false; } }
+  function loadFavs() { try { return JSON.parse(localStorage.getItem('jogos_favs')||'[]'); } catch(e){ return []; } }
   function savePref() {
     try {
       var off = Array.from(leagues).filter(function(l){ return !active.has(l); });
       localStorage.setItem('jogos_off', JSON.stringify(off));
       localStorage.setItem('jogos_nofem', noFem?'true':'false');
+      localStorage.setItem('jogos_favs', JSON.stringify(favTimes));
     } catch(e){}
   }
 
-  function sw(t) {
+  function addFav() {
+    var inp = document.getElementById('favInput');
+    var val = inp.value.trim();
+    if (!val) return;
+    if (favTimes.map(function(f){ return f.toLowerCase(); }).indexOf(val.toLowerCase()) === -1) {
+      favTimes.push(val);
+      savePref();
+      renderFavTags();
+      render();
+    }
+    inp.value = '';
+  }
+
+  function removeFav(i) {
+    favTimes.splice(i, 1);
+    savePref(); renderFavTags(); render();
+  }
+
+  function renderFavTags() {
+    var box = document.getElementById('favTags');
+    box.innerHTML = '';
+    favTimes.forEach(function(f, i){
+      var tag = document.createElement('div');
+      tag.className = 'fav-tag';
+      tag.innerHTML = '⭐ ' + f + '<button onclick="removeFav('+i+')">×</button>';
+      box.appendChild(tag);
+    });
+  }
+
+  function swTab(t) {
     tab = t;
     document.getElementById('tH').className = 'tab'+(t==='hoje'?' on':'');
     document.getElementById('tA').className = 'tab'+(t==='amanha'?' on':'');
@@ -192,75 +263,63 @@
     leagues = new Set(data[tab].map(function(g){ return g.league; }).filter(Boolean));
     var off = loadSaved();
     active = new Set();
-    leagues.forEach(function(l){
-      if (off.indexOf(l)===-1) active.add(l);
-    });
+    leagues.forEach(function(l){ if(off.indexOf(l)===-1) active.add(l); });
     if (noFem) leagues.forEach(function(l){ if(isFem(l)) active.delete(l); });
   }
 
-  function onAll() {
-    leagues.forEach(function(l){ if(!noFem||!isFem(l)) active.add(l); });
-    savePref(); render();
-  }
-
-  function onNone() {
-    active.clear();
-    savePref(); render();
-  }
-
+  function onAll() { leagues.forEach(function(l){ if(!noFem||!isFem(l)) active.add(l); }); savePref(); render(); }
+  function onNone() { active.clear(); savePref(); render(); }
   function onNoFem() {
     noFem = !noFem;
     if (noFem) leagues.forEach(function(l){ if(isFem(l)) active.delete(l); });
     savePref(); render();
   }
 
-  function timeToMin(t) {
-    var p = t.replace('h',':').split(':');
-    return parseInt(p[0])*60+parseInt(p[1]||0);
-  }
-
-  function fmtLeague(name) {
-    return (name||'').replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>');
-  }
+  function timeToMin(t) { var p=t.replace('h',':').split(':'); return parseInt(p[0])*60+parseInt(p[1]||0); }
+  function fmtLeague(name) { return (name||'').replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'); }
 
   function render() {
-    var allOn = Array.from(leagues).filter(function(l){ return !noFem||!isFem(l); }).every(function(l){ return active.has(l); }) && leagues.size > 0;
-    var noneOn = active.size === 0 && leagues.size > 0;
+    var allOn = leagues.size>0 && Array.from(leagues).filter(function(l){ return !noFem||!isFem(l); }).every(function(l){ return active.has(l); });
+    var noneOn = leagues.size>0 && active.size===0;
+    document.getElementById('rowAll').className='cb-row'+(allOn?' checked':'');
+    document.getElementById('boxAll').textContent=allOn?'✓':'';
+    document.getElementById('rowNone').className='cb-row'+(noneOn?' checked':'');
+    document.getElementById('boxNone').textContent=noneOn?'✓':'';
+    document.getElementById('rowNoFem').className='cb-row nofem'+(noFem?' checked':'');
+    document.getElementById('boxNoFem').textContent=noFem?'✓':'';
 
-    document.getElementById('rowAll').className = 'cb-row'+(allOn?' checked':'');
-    document.getElementById('boxAll').textContent = allOn?'✓':'';
-    document.getElementById('rowNone').className = 'cb-row'+(noneOn?' checked':'');
-    document.getElementById('boxNone').textContent = noneOn?'✓':'';
-    document.getElementById('rowNoFem').className = 'cb-row nofem'+(noFem?' checked':'');
-    document.getElementById('boxNoFem').textContent = noFem?'✓':'';
-
-    var lbox = document.getElementById('chps');
-    var wrap = document.getElementById('leaguesWrap');
-    lbox.innerHTML = '';
-    if (leagues.size===0) { wrap.style.display='none'; return; }
-    wrap.style.display = 'block';
-
-    var sorted = Array.from(leagues).sort(function(a,b){
-      var fa=isFem(a), fb=isFem(b);
-      if(fa&&!fb) return 1; if(!fa&&fb) return -1;
-      var pa=leaguePriority(a), pb=leaguePriority(b);
-      if(pa!==pb) return pa-pb;
-      return a.localeCompare(b);
-    });
-
-    sorted.forEach(function(l){
-      var fem=isFem(l);
-      var c=document.createElement('div');
-      c.className='chip'+(active.has(l)?' on':'')+(fem?' feminino':'');
-      c.innerHTML='<span class="dot"></span>'+(fem?l.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):l);
-      c.onclick=function(){ active.has(l)?active.delete(l):active.add(l); savePref(); render(); };
-      lbox.appendChild(c);
-    });
-    document.getElementById('lcnt').textContent=active.size+'/'+leagues.size;
+    var lbox=document.getElementById('chps');
+    var wrap=document.getElementById('leaguesWrap');
+    lbox.innerHTML='';
+    if(leagues.size===0){ wrap.style.display='none'; }
+    else {
+      wrap.style.display='block';
+      var sorted=Array.from(leagues).sort(function(a,b){
+        var fa=isFem(a),fb=isFem(b);
+        if(fa&&!fb) return 1; if(!fa&&fb) return -1;
+        var pa=leaguePriority(a),pb=leaguePriority(b);
+        if(pa!==pb) return pa-pb;
+        return a.localeCompare(b);
+      });
+      sorted.forEach(function(l){
+        var fem=isFem(l);
+        var c=document.createElement('div');
+        c.className='chip'+(active.has(l)?' on':'')+(fem?' feminino':'');
+        c.innerHTML='<span class="dot"></span>'+(fem?l.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):l);
+        c.onclick=function(){ active.has(l)?active.delete(l):active.add(l); savePref(); render(); };
+        lbox.appendChild(c);
+      });
+      document.getElementById('lcnt').textContent=active.size+'/'+leagues.size;
+    }
 
     var games=data[tab]
       .filter(function(g){ return !g.league||active.has(g.league); })
-      .sort(function(a,b){ return timeToMin(a.time)-timeToMin(b.time); });
+      .sort(function(a,b){
+        // favoritos sempre primeiro, depois por horário
+        var fa=isFavGameFem(a.teams,a.league), fb=isFavGameFem(b.teams,b.league);
+        if(fa&&!fb) return -1; if(!fa&&fb) return 1;
+        return timeToMin(a.time)-timeToMin(b.time);
+      });
 
     document.getElementById('stat').textContent=games.length+' jogo'+(games.length!==1?'s':'')+' · mantosdofutebol.com.br';
 
@@ -268,21 +327,26 @@
       document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>';
       return;
     }
+
     var h='<div class="glist">';
     games.forEach(function(g){
       var fem=isFem(g.league||'');
-      h+='<div class="gc"><div class="gt">'+g.time+'</div><div class="gm">'+
-        '<div class="gn">'+g.teams+'</div>'+
-        '<div class="gl'+(fem?' fem':'')+'">'+fmtLeague(g.league||'')+'</div>'+
-        (g.tv?'<div class="gtv">'+g.tv+'</div>':'')+
-        '</div></div>';
+      var fav=isFavGameFem(g.teams, g.league);
+      h+='<div class="gc'+(fav?' favorito':'')+'">'+
+        '<div class="gt">'+g.time+'</div>'+
+        '<div class="gm">'+
+          '<div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div>'+
+          '<div class="gl'+(fem?' fem':'')+'">'+fmtLeague(g.league||'')+'</div>'+
+          (g.tv?'<div class="gtv">'+g.tv+'</div>':'')+
+        '</div>'+
+      '</div>';
     });
     h+='</div>';
     document.getElementById('out').innerHTML=h;
   }
 
   async function load() {
-    var btn=document.getElementById('refBtn'), icon=document.getElementById('refIcon');
+    var btn=document.getElementById('refBtn'),icon=document.getElementById('refIcon');
     btn.disabled=true; icon.className='spin';
     document.getElementById('errorBox').style.display='none';
     document.getElementById('out').innerHTML='<div class="loading"><div class="loading-spinner"></div><div>Bombacha buscando os jogos...</div></div>';
@@ -293,12 +357,12 @@
       if(!res.ok) throw new Error('Erro '+res.status);
       var json=await res.json();
       data.hoje=json.hoje||[]; data.amanha=json.amanha||[];
-      noFem=loadNoFem();
+      noFem=loadNoFem(); favTimes=loadFavs();
       if(json.updatedAt){
         var d=new Date(json.updatedAt);
         document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
       }
-      buildLeagues(); render();
+      buildLeagues(); renderFavTags(); render();
     } catch(e){
       document.getElementById('out').innerHTML='';
       document.getElementById('errorBox').style.display='block';
@@ -308,7 +372,7 @@
   }
 
   load();
-  setInterval(load, 60*60*1000);
+  setInterval(load,60*60*1000);
 </script>
 </body>
 </html>
