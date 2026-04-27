@@ -3,257 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Jogos na TV</title>
+  <title>Jogos na TV · Bombacha</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --green: #1D9E75;
-      --green-light: #E1F5EE;
-      --green-dark: #0F6E56;
-      --green-text: #085041;
-      --bg: #f7f7f5;
-      --surface: #ffffff;
-      --surface2: #f2f1ef;
-      --border: rgba(0,0,0,0.10);
-      --border2: rgba(0,0,0,0.18);
-      --text: #1a1a18;
-      --text2: #5f5e5a;
-      --text3: #888780;
-      --radius: 8px;
-      --radius-lg: 12px;
+      --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #0F6E56; --green-text: #085041;
+      --bg: #f7f7f5; --surface: #ffffff; --surface2: #f2f1ef;
+      --border: rgba(0,0,0,0.10); --border2: rgba(0,0,0,0.18);
+      --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+      --radius: 8px; --radius-lg: 12px;
     }
-
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #1c1c1a;
-        --surface: #252522;
-        --surface2: #2e2e2b;
-        --border: rgba(255,255,255,0.10);
-        --border2: rgba(255,255,255,0.18);
-        --text: #f0efe8;
-        --text2: #b4b2a9;
-        --text3: #888780;
-        --green-light: #0a2e22;
-        --green-text: #5DCAA5;
+        --bg: #1c1c1a; --surface: #252522; --surface2: #2e2e2b;
+        --border: rgba(255,255,255,0.10); --border2: rgba(255,255,255,0.18);
+        --text: #f0efe8; --text2: #b4b2a9; --text3: #888780;
+        --green-light: #0a2e22; --green-text: #5DCAA5;
       }
     }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 5rem; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+    /* HEADER */
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    h1 { font-size: 20px; font-weight: 600; }
+    .subtitle { font-size: 12px; color: var(--text3); margin-top: 1px; }
 
-    .container {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 1.5rem 1rem 4rem;
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .header-left { display: flex; align-items: center; gap: 10px; }
-
-    .ball {
-      width: 32px; height: 32px;
-      background: var(--green);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
-    }
-
-    h1 { font-size: 22px; font-weight: 600; }
-
-    .updated {
-      font-size: 12px;
-      color: var(--text3);
-    }
-
-    .refresh-btn {
-      padding: 7px 14px;
-      font-size: 13px;
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      background: var(--surface);
-      color: var(--text);
+    /* BOMBACHA HEADER */
+    .bombacha-header {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: 2.5px solid var(--green);
+      overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(29,158,117,0.3);
+      transition: transform 0.2s;
       cursor: pointer;
-      display: flex; align-items: center; gap: 6px;
-      transition: background 0.15s;
     }
+    .bombacha-header:hover { transform: scale(1.08) rotate(-3deg); }
+    .bombacha-header svg { width: 100%; height: 100%; }
+
+    /* BOMBACHA FLUTUANTE */
+    .bombacha-float {
+      position: fixed; bottom: 22px; right: 22px; z-index: 999;
+      cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .bombacha-float-img {
+      width: 68px; height: 68px; border-radius: 50%;
+      border: 3px solid var(--green);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      transition: transform 0.2s;
+    }
+    .bombacha-float:hover .bombacha-float-img { transform: scale(1.1) rotate(5deg); }
+    .bombacha-float-img svg { width: 100%; height: 100%; }
+    .bombacha-label {
+      background: var(--green); color: white;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    /* REFRESH BTN */
+    .refresh-btn { padding: 7px 14px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
     .refresh-btn:hover { background: var(--surface2); }
     .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .spin { display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .tabs {
-      display: flex;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      width: fit-content;
-      margin-bottom: 1.25rem;
-    }
-    .tab {
-      padding: 8px 22px;
-      font-size: 14px;
-      color: var(--text2);
-      background: var(--surface);
-      border: none;
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-    .tab.on {
-      background: var(--surface2);
-      color: var(--text);
-      font-weight: 600;
-    }
+    /* TABS */
+    .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; width: fit-content; margin-bottom: 1.25rem; }
+    .tab { padding: 8px 22px; font-size: 14px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; }
+    .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
 
-    .leagues-wrap {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 12px 14px;
-      margin-bottom: 1.25rem;
-    }
-    .leagues-lbl {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    /* LEAGUES */
+    .leagues-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 1.25rem; }
+    .leagues-lbl { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip {
-      display: flex; align-items: center; gap: 5px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      font-size: 12px;
-      color: var(--text);
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.1s;
-    }
-    .chip.on {
-      background: var(--green-light);
-      border-color: var(--green);
-      color: var(--green-text);
-    }
-    .chip .dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--border2);
-      flex-shrink: 0;
-    }
+    .chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text); cursor: pointer; user-select: none; transition: all 0.1s; }
+    .chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-text); }
+    .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
     .chip.on .dot { background: var(--green); }
     .qbtns { display: flex; gap: 12px; margin-top: 8px; }
-    .qbtn {
-      font-size: 12px; color: var(--text3);
-      background: none; border: none;
-      cursor: pointer; text-decoration: underline; padding: 0;
-    }
-    .qbtn:hover { color: var(--text2); }
+    .qbtn { font-size: 12px; color: var(--text3); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; }
 
-    .stat {
-      font-size: 12px;
-      color: var(--text3);
-      margin-bottom: 1rem;
-    }
-
-    .sec {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      padding: 10px 0 6px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 6px;
-    }
-    .glist {
-      display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px;
-    }
-    .gc {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 11px 14px;
-      display: flex; align-items: center; gap: 12px;
-    }
-    .gt {
-      font-size: 13px; font-weight: 600;
-      color: var(--green-dark);
-      min-width: 42px; flex-shrink: 0;
-    }
+    /* GAMES */
+    .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
+    .sec { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; padding: 10px 0 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+    .glist { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+    .gc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 12px; }
+    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; }
     .gm { flex: 1; min-width: 0; }
-    .gn {
-      font-size: 14px; font-weight: 500;
-      color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .gtv {
-      font-size: 11px; color: var(--text2);
-      background: var(--surface2);
-      border-radius: 4px;
-      padding: 3px 8px;
-      white-space: nowrap; flex-shrink: 0;
-      max-width: 160px; overflow: hidden; text-overflow: ellipsis;
-    }
-
-    .empty {
-      text-align: center; padding: 3rem 1rem;
-      color: var(--text3); font-size: 14px;
-    }
-    .loading {
-      text-align: center; padding: 3rem 1rem;
-      color: var(--text3); font-size: 14px;
-      display: flex; flex-direction: column; align-items: center; gap: 14px;
-    }
-    .loading-spinner {
-      width: 30px; height: 30px;
-      border: 2px solid var(--border);
-      border-top-color: var(--green);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    .error {
-      background: #FCEBEB; border: 1px solid #F09595;
-      border-radius: var(--radius); padding: 12px 14px;
-      font-size: 13px; color: #791F1F; margin-bottom: 1rem;
-    }
-
-    @media (max-width: 480px) {
-      .gn { font-size: 13px; }
-      .gtv { max-width: 110px; }
-    }
+    .gn { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gtv { font-size: 11px; color: var(--text2); background: var(--surface2); border-radius: 4px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
+    .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .error { background: #FCEBEB; border: 1px solid #F09595; border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: #791F1F; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
+
+<!-- SVG do Bombacha reutilizável -->
+<svg style="display:none">
+  <symbol id="bombacha-svg" viewBox="0 0 100 100">
+    <!-- fundo chapeu -->
+    <circle cx="50" cy="50" r="50" fill="#c8823a"/>
+    <!-- chapeu aba -->
+    <ellipse cx="50" cy="28" rx="38" ry="7" fill="#5c2d00"/>
+    <!-- chapeu topo -->
+    <rect x="32" y="8" width="36" height="22" rx="6" fill="#6B3410"/>
+    <!-- rosto -->
+    <circle cx="50" cy="55" r="22" fill="#f5c89a"/>
+    <!-- barba -->
+    <ellipse cx="50" cy="68" rx="16" ry="10" fill="#e0e0d8"/>
+    <!-- bigode -->
+    <path d="M42 60 Q50 65 58 60" stroke="#b0b0a0" stroke-width="2" fill="#d8d8d0"/>
+    <!-- olhos -->
+    <circle cx="43" cy="52" r="3" fill="#3a2000"/>
+    <circle cx="57" cy="52" r="3" fill="#3a2000"/>
+    <!-- brilho olhos -->
+    <circle cx="44" cy="51" r="1" fill="white"/>
+    <circle cx="58" cy="51" r="1" fill="white"/>
+    <!-- sobrancelhas -->
+    <path d="M40 48 Q43 46 46 48" stroke="#5c2d00" stroke-width="1.5" fill="none"/>
+    <path d="M54 48 Q57 46 60 48" stroke="#5c2d00" stroke-width="1.5" fill="none"/>
+    <!-- nariz -->
+    <ellipse cx="50" cy="57" rx="3" ry="2" fill="#e0a070"/>
+    <!-- sorriso -->
+    <path d="M44 63 Q50 68 56 63" stroke="#8B4513" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- camisa -->
+    <ellipse cx="50" cy="88" rx="28" ry="16" fill="#f0f0e8"/>
+    <!-- escrita Bombacha -->
+    <text x="50" y="91" font-family="Arial" font-size="7" text-anchor="middle" fill="#c0392b" font-weight="bold">Bombacha</text>
+    <!-- gravata -->
+    <path d="M47 75 L50 72 L53 75 L51 88 L49 88 Z" fill="#8B1a1a"/>
+    <path d="M47 75 L50 72 L53 75" fill="#c0392b"/>
+  </symbol>
+</svg>
+
 <div class="container">
   <div class="header">
     <div class="header-left">
-      <div class="ball">⚽</div>
+      <div class="bombacha-header" title="Bombacha - seu guia de jogos!">
+        <svg><use href="#bombacha-svg"/></svg>
+      </div>
       <div>
         <h1>Jogos na TV</h1>
-        <div class="updated" id="updatedAt"></div>
+        <div class="subtitle" id="updatedAt">com Bombacha ⚽</div>
       </div>
     </div>
     <button class="refresh-btn" id="refBtn" onclick="load()">
-      <span id="refIcon">↻</span> Atualizar
+      <span id="refIcon">&#8635;</span> Atualizar
     </button>
   </div>
 
@@ -277,67 +177,71 @@
   <div id="out"></div>
 </div>
 
+<!-- Bombacha flutuante -->
+<div class="bombacha-float" onclick="load()" title="Atualizar jogos">
+  <div class="bombacha-float-img">
+    <svg><use href="#bombacha-svg"/></svg>
+  </div>
+  <div class="bombacha-label">AO VIVO</div>
+</div>
+
 <script>
-  let data = { hoje: [], amanha: [] };
-  let tab = 'hoje';
-  let active = new Set();
-  let leagues = new Set();
+  var data = { hoje: [], amanha: [] };
+  var tab = 'hoje';
+  var active = new Set();
+  var leagues = new Set();
 
   function sw(t) {
     tab = t;
     document.getElementById('tH').className = 'tab' + (t === 'hoje' ? ' on' : '');
     document.getElementById('tA').className = 'tab' + (t === 'amanha' ? ' on' : '');
-    buildLeagues();
-    render();
+    buildLeagues(); render();
   }
 
   function buildLeagues() {
-    leagues = new Set(data[tab].map(g => g.league).filter(Boolean));
-    active = new Set([...leagues]);
+    leagues = new Set(data[tab].map(function(g) { return g.league; }).filter(Boolean));
+    active = new Set(Array.from(leagues));
   }
 
-  function all() { leagues.forEach(l => active.add(l)); render(); }
+  function all() { leagues.forEach(function(l) { active.add(l); }); render(); }
   function none() { active.clear(); render(); }
 
   function render() {
-    const lbox = document.getElementById('chps');
-    const wrap = document.getElementById('leaguesWrap');
+    var lbox = document.getElementById('chps');
+    var wrap = document.getElementById('leaguesWrap');
     lbox.innerHTML = '';
-    if (leagues.size === 0) { wrap.style.display = 'none'; }
-    else {
+    if (leagues.size === 0) {
+      wrap.style.display = 'none';
+    } else {
       wrap.style.display = 'block';
-      [...leagues].sort().forEach(l => {
-        const c = document.createElement('div');
+      Array.from(leagues).sort().forEach(function(l) {
+        var c = document.createElement('div');
         c.className = 'chip' + (active.has(l) ? ' on' : '');
         c.innerHTML = '<span class="dot"></span>' + l;
-        c.onclick = () => { active.has(l) ? active.delete(l) : active.add(l); render(); };
+        c.onclick = function() { active.has(l) ? active.delete(l) : active.add(l); render(); };
         lbox.appendChild(c);
       });
       document.getElementById('lcnt').textContent = active.size + '/' + leagues.size;
     }
 
-    const games = data[tab].filter(g => !g.league || active.has(g.league));
+    var games = data[tab].filter(function(g) { return !g.league || active.has(g.league); });
     document.getElementById('stat').textContent = games.length + ' jogo' + (games.length !== 1 ? 's' : '') + ' · mantosdofutebol.com.br';
 
-    const byL = {};
-    games.forEach(g => {
-      const k = g.league || 'Outros';
+    var byL = {};
+    games.forEach(function(g) {
+      var k = g.league || 'Outros';
       if (!byL[k]) byL[k] = [];
       byL[k].push(g);
     });
 
-    let h = '';
+    var h = '';
     if (!games.length) {
       h = '<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>';
     } else {
-      Object.entries(byL).forEach(([l, gs]) => {
-        h += `<div class="sec">${l}</div><div class="glist">`;
-        gs.forEach(g => {
-          h += `<div class="gc">
-            <div class="gt">${g.time}</div>
-            <div class="gm"><div class="gn">${g.teams}</div></div>
-            ${g.tv ? `<div class="gtv">${g.tv}</div>` : ''}
-          </div>`;
+      Object.keys(byL).sort().forEach(function(l) {
+        h += '<div class="sec">' + l + '</div><div class="glist">';
+        byL[l].forEach(function(g) {
+          h += '<div class="gc"><div class="gt">' + g.time + '</div><div class="gm"><div class="gn">' + g.teams + '</div></div>' + (g.tv ? '<div class="gtv">' + g.tv + '</div>' : '') + '</div>';
         });
         h += '</div>';
       });
@@ -346,32 +250,26 @@
   }
 
   async function load() {
-    const btn = document.getElementById('refBtn');
-    const icon = document.getElementById('refIcon');
+    var btn = document.getElementById('refBtn');
+    var icon = document.getElementById('refIcon');
     btn.disabled = true;
     icon.className = 'spin';
-    icon.textContent = '↻';
     document.getElementById('errorBox').style.display = 'none';
-    document.getElementById('out').innerHTML = '<div class="loading"><div class="loading-spinner"></div><div>Buscando jogos...</div></div>';
+    document.getElementById('out').innerHTML = '<div class="loading"><div class="loading-spinner"></div><div>Bombacha buscando os jogos...</div></div>';
     document.getElementById('leaguesWrap').style.display = 'none';
     document.getElementById('stat').textContent = '';
 
     try {
-      const res = await fetch('/api/jogos');
+      var res = await fetch('/api/jogos');
       if (!res.ok) throw new Error('Erro ' + res.status);
-      const json = await res.json();
-
+      var json = await res.json();
       data.hoje = json.hoje || [];
       data.amanha = json.amanha || [];
-
       if (json.updatedAt) {
-        const d = new Date(json.updatedAt);
-        document.getElementById('updatedAt').textContent =
-          'atualizado ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        var d = new Date(json.updatedAt);
+        document.getElementById('updatedAt').textContent = 'com Bombacha · atualizado ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       }
-
-      buildLeagues();
-      render();
+      buildLeagues(); render();
     } catch (e) {
       document.getElementById('out').innerHTML = '';
       document.getElementById('errorBox').style.display = 'block';
@@ -383,8 +281,6 @@
   }
 
   load();
-
-  // Atualiza automaticamente a cada 1 hora
   setInterval(load, 60 * 60 * 1000);
 </script>
 </body>
