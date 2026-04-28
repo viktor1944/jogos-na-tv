@@ -124,4 +124,337 @@
     .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
     .error { background: #FCEBEB; border: 1px solid #F09595; border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: #791F1F; margin-bottom: 1rem; }
-    .bombacha-float { position: fixed; bottom: 22px; rig
+    .bombacha-float { position: fixed; bottom: 22px; right: 22px; z-index: 150; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bombacha-float-img { width: 68px; height: 68px; border-radius: 50%; border: 3px solid var(--green); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.25); transition: transform 0.2s; }
+    .bombacha-float:hover .bombacha-float-img { transform: scale(1.1) rotate(5deg); }
+    .bombacha-float-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+    .bombacha-label { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.05em; }
+  </style>
+</head>
+<body>
+
+<div class="config-overlay" id="overlay" onclick="closeConfig()"></div>
+<div class="config-dropdown" id="configPanel">
+  <div class="config-head">
+    <h2>⚙️ Configurações</h2>
+    <button class="config-close" onclick="closeConfig()">×</button>
+  </div>
+  <div class="config-body">
+    <div class="cfg-sec">
+      <div class="cfg-sec-title">⭐ Time favorito</div>
+      <div class="fav-input-row">
+        <input class="fav-input" id="favInput" type="text" placeholder="Ex: Flamengo..." onkeydown="if(event.key==='Enter')addFav()"/>
+        <button class="fav-add" onclick="addFav()">+ Add</button>
+      </div>
+      <div class="fav-tags" id="favTags"></div>
+    </div>
+    <div class="cfg-sec">
+      <div class="cfg-sec-title">🎨 Colorir campeonatos</div>
+      <div class="color-row">
+        <select class="color-select" id="colorSelect">
+          <option value="">Campeonato...</option>
+        </select>
+        <input class="color-pick" type="color" id="colorPick" value="#1D9E75"/>
+        <button class="color-add" onclick="addColor()">Salvar</button>
+      </div>
+      <div class="color-tags" id="colorTags"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="header">
+    <div class="header-left">
+      <div class="bombacha-header">
+        <img src="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg" alt="Bombacha"/>
+      </div>
+      <div>
+        <h1>Jogos na TV</h1>
+        <div class="subtitle" id="updatedAt">com Bombacha ⚽</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" onclick="openConfig()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Configurações
+      </button>
+      <button class="icon-btn" id="refBtn" onclick="load()">
+        <span id="refIcon">↻</span> Atualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="swTab('hoje')" id="tH">Hoje</button>
+    <button class="tab" onclick="swTab('amanha')" id="tA">Amanhã</button>
+  </div>
+
+  <div id="errorBox" class="error" style="display:none;"></div>
+  <div id="stat" class="stat"></div>
+
+  <!-- ACCORDION CAMPEONATOS -->
+  <div class="acc-wrap" id="leaguesWrap" style="display:none;">
+    <div class="acc-header" onclick="toggleAcc()">
+      <div class="acc-header-left">
+        <span>Campeonatos</span>
+        <span id="lcnt" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text3)"></span>
+      </div>
+      <span class="acc-arrow" id="accArrow">▼</span>
+    </div>
+    <div class="acc-body" id="accBody">
+      <div class="chips" id="chps"></div>
+      <div class="actions">
+        <div class="cb-row" id="rowAll" onclick="onAll()">
+          <div class="cb-box" id="boxAll"></div><span>Marcar todos</span>
+        </div>
+        <div class="cb-row" id="rowNone" onclick="onNone()">
+          <div class="cb-box" id="boxNone"></div><span>Desmarcar todos</span>
+        </div>
+        <div class="cb-row nofem" id="rowNoFem" onclick="onNoFem()">
+          <div class="cb-box" id="boxNoFem"></div>
+          <span>🚫 Não quero ver NADA de futebol feminino! 😂</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<div class="bombacha-float" onclick="load()" title="Atualizar">
+  <div class="bombacha-float-img">
+    <img src="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg" alt="Bombacha"/>
+  </div>
+  <div class="bombacha-label">AO VIVO</div>
+</div>
+
+<script>
+  var data={hoje:[],amanha:[]}, tab='hoje', active=new Set(), leagues=new Set();
+  var noFem=false, favTimes=[], leagueColors={};
+  var accOpen=false;
+
+  var DEFAULT_COLORS=[
+    {match:'champions league', color:'#c0392b'},
+    {match:'libertadores',     color:'#2980b9'},
+    {match:'sul-americana',    color:'#2980b9'},
+    {match:'sulamericana',     color:'#2980b9'},
+    {match:'brasileirão série a', color:'#1565c0'},
+    {match:'brasileirao serie a', color:'#1565c0'},
+    {match:'brasileirão série b', color:'#f9a825'},
+    {match:'brasileirao serie b', color:'#f9a825'},
+    {match:'la liga',  color:'#2e7d32'},
+    {match:'laliga',   color:'#2e7d32'},
+    {match:'serie a',  color:'#2e7d32'},
+    {match:'bundesliga', color:'#2e7d32'}
+  ];
+
+  function getDefaultColor(name){
+    var n=(name||'').toLowerCase();
+    for(var i=0;i<DEFAULT_COLORS.length;i++) if(n.indexOf(DEFAULT_COLORS[i].match)!==-1) return DEFAULT_COLORS[i].color;
+    return null;
+  }
+  function getColor(name){ return leagueColors[name]||getDefaultColor(name); }
+
+  var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sulamericana','sul-americana','premier league','la liga','laliga','bundesliga'];
+  function leaguePriority(n){ n=n.toLowerCase(); for(var i=0;i<PRIORITY.length;i++) if(n.indexOf(PRIORITY[i])!==-1) return i; return 999; }
+  function isFem(n){ n=(n||'').toLowerCase(); return n.indexOf('feminino')!==-1||n.indexOf('feminina')!==-1||n.indexOf('nwsl')!==-1; }
+  function isFavGame(teams,league){ if(!favTimes.length) return false; if(noFem&&isFem(league)) return false; var t=(teams||'').toLowerCase(); return favTimes.some(function(f){ return t.indexOf(f.toLowerCase())!==-1; }); }
+  function hexToRgba(hex,a){ var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
+
+  function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){} }
+  function loadSaved(){ try{return JSON.parse(ls('jogos_off')||'[]');}catch(e){return[];} }
+  function loadNoFem(){ return ls('jogos_nofem')==='true'; }
+  function loadFavs(){ try{return JSON.parse(ls('jogos_favs')||'[]');}catch(e){return[];} }
+  function loadColors(){ try{return JSON.parse(ls('jogos_colors')||'{}');}catch(e){return{};} }
+  function loadAccOpen(){ return ls('acc_open')==='true'; }
+  function savePref(){
+    try{
+      var off=Array.from(leagues).filter(function(l){return !active.has(l);});
+      ls('jogos_off',JSON.stringify(off));
+      ls('jogos_nofem',noFem?'true':'false');
+      ls('jogos_favs',JSON.stringify(favTimes));
+      ls('jogos_colors',JSON.stringify(leagueColors));
+    }catch(e){}
+  }
+
+  function toggleAcc(){
+    accOpen=!accOpen;
+    ls('acc_open',accOpen?'true':'false');
+    document.getElementById('accBody').className='acc-body'+(accOpen?' open':'');
+    document.getElementById('accArrow').className='acc-arrow'+(accOpen?' open':'');
+  }
+
+  function openConfig(){ document.getElementById('overlay').classList.add('open'); document.getElementById('configPanel').classList.add('open'); renderColorSelect(); }
+  function closeConfig(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('configPanel').classList.remove('open'); }
+
+  function addFav(){
+    var inp=document.getElementById('favInput'),val=inp.value.trim();
+    if(!val) return;
+    if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(val.toLowerCase())===-1){ favTimes.push(val); savePref(); renderFavTags(); render(); }
+    inp.value='';
+  }
+  function removeFav(i){ favTimes.splice(i,1); savePref(); renderFavTags(); render(); }
+  function renderFavTags(){
+    var box=document.getElementById('favTags'); box.innerHTML='';
+    favTimes.forEach(function(f,i){ var t=document.createElement('div'); t.className='fav-tag'; t.innerHTML='⭐ '+f+'<button onclick="removeFav('+i+')">×</button>'; box.appendChild(t); });
+  }
+
+  function renderColorSelect(){
+    var sel=document.getElementById('colorSelect');
+    sel.innerHTML='<option value="">Campeonato...</option>';
+    // todos os campeonatos disponíveis, sem bolinha
+    Array.from(leagues).sort().forEach(function(l){
+      var o=document.createElement('option');
+      o.value=l; o.textContent=l;
+      sel.appendChild(o);
+    });
+    sel.onchange=function(){
+      // ao selecionar, pre-preenche com a cor atual (personalizada ou padrão)
+      var cor=getColor(sel.value);
+      if(cor) document.getElementById('colorPick').value=cor;
+      else document.getElementById('colorPick').value='#1D9E75';
+    };
+    renderColorTags();
+  }
+
+  function addColor(){
+    var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick');
+    if(!sel.value) return;
+    leagueColors[sel.value]=pick.value;
+    savePref(); renderColorSelect(); render();
+  }
+
+  function removeColor(l){
+    delete leagueColors[l]; savePref(); renderColorSelect(); render();
+  }
+
+  function renderColorTags(){
+    var box=document.getElementById('colorTags'); box.innerHTML='';
+    var shown={};
+
+    // Personalizados primeiro
+    Object.keys(leagueColors).forEach(function(l){
+      shown[l]=true;
+      var div=document.createElement('div'); div.className='color-tag';
+      div.innerHTML=
+        '<div class="color-dot" style="background:'+leagueColors[l]+'"></div>'+
+        '<span class="color-tag-name">'+l+'</span>'+
+        '<input class="color-tag-edit" type="color" value="'+leagueColors[l]+'" title="Editar cor" onchange="editColor(\''+l.replace(/'/g,"\\'")+'\', this.value)"/>'+
+        '<button onclick="removeColor(\''+l.replace(/'/g,"\\'")+'\')">×</button>';
+      box.appendChild(div);
+    });
+
+    // Padrões (editáveis também)
+    Array.from(leagues).sort(function(a,b){return leaguePriority(a)-leaguePriority(b);}).forEach(function(l){
+      if(shown[l]) return;
+      var dc=getDefaultColor(l); if(!dc) return;
+      var div=document.createElement('div'); div.className='color-tag';
+      div.innerHTML=
+        '<div class="color-dot" style="background:'+dc+'"></div>'+
+        '<span class="color-tag-name">'+l+' <small style="color:var(--text3);font-weight:400">(padrão)</small></span>'+
+        '<input class="color-tag-edit" type="color" value="'+dc+'" title="Editar cor" onchange="editColor(\''+l.replace(/'/g,"\\'")+'\', this.value)"/>'+
+        '<button onclick="removeColor(\''+l.replace(/'/g,"\\'")+'\')">×</button>';
+      box.appendChild(div);
+    });
+  }
+
+  function editColor(l, val){
+    leagueColors[l]=val;
+    savePref(); renderColorSelect(); render();
+  }
+
+  function swTab(t){ tab=t; document.getElementById('tH').className='tab'+(t==='hoje'?' on':''); document.getElementById('tA').className='tab'+(t==='amanha'?' on':''); buildLeagues(); render(); }
+
+  function buildLeagues(){
+    leagues=new Set(data[tab].map(function(g){return g.league;}).filter(Boolean));
+    var off=loadSaved(); active=new Set();
+    leagues.forEach(function(l){ if(off.indexOf(l)===-1) active.add(l); });
+    if(noFem) leagues.forEach(function(l){ if(isFem(l)) active.delete(l); });
+  }
+
+  function onAll(){ leagues.forEach(function(l){ if(!noFem||!isFem(l)) active.add(l); }); savePref(); render(); }
+  function onNone(){ active.clear(); savePref(); render(); }
+  function onNoFem(){ noFem=!noFem; if(noFem) leagues.forEach(function(l){ if(isFem(l)) active.delete(l); }); savePref(); render(); }
+  function timeToMin(t){ var p=t.replace('h',':').split(':'); return parseInt(p[0])*60+parseInt(p[1]||0); }
+  function fmtLeague(n){ return (n||'').replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'); }
+
+  function render(){
+    var allOn=leagues.size>0&&Array.from(leagues).filter(function(l){return !noFem||!isFem(l);}).every(function(l){return active.has(l);});
+    var noneOn=leagues.size>0&&active.size===0;
+    document.getElementById('rowAll').className='cb-row'+(allOn?' checked':''); document.getElementById('boxAll').textContent=allOn?'✓':'';
+    document.getElementById('rowNone').className='cb-row'+(noneOn?' checked':''); document.getElementById('boxNone').textContent=noneOn?'✓':'';
+    document.getElementById('rowNoFem').className='cb-row nofem'+(noFem?' checked':''); document.getElementById('boxNoFem').textContent=noFem?'✓':'';
+
+    var lbox=document.getElementById('chps'), wrap=document.getElementById('leaguesWrap');
+    lbox.innerHTML='';
+    if(leagues.size===0){ wrap.style.display='none'; }
+    else{
+      wrap.style.display='block';
+      document.getElementById('lcnt').textContent=active.size+'/'+leagues.size+' selecionados';
+      var sorted=Array.from(leagues).sort(function(a,b){ var fa=isFem(a),fb=isFem(b); if(fa&&!fb) return 1; if(!fa&&fb) return -1; var pa=leaguePriority(a),pb=leaguePriority(b); if(pa!==pb) return pa-pb; return a.localeCompare(b); });
+      sorted.forEach(function(l){
+        var fem=isFem(l), cor=getColor(l);
+        var c=document.createElement('div');
+        c.className='chip'+(active.has(l)?' on':'')+(fem?' feminino':'');
+        if(cor&&active.has(l)){ c.style.background=hexToRgba(cor,0.15); c.style.borderColor=cor; c.style.color=cor; }
+        c.innerHTML='<span class="dot"'+(cor&&active.has(l)?' style="background:'+cor+'"':'')+'>​</span>'+(fem?l.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):l);
+        c.onclick=function(){ active.has(l)?active.delete(l):active.add(l); savePref(); render(); };
+        lbox.appendChild(c);
+      });
+    }
+
+    var games=data[tab].filter(function(g){return !g.league||active.has(g.league);}).sort(function(a,b){ var fa=isFavGame(a.teams,a.league),fb=isFavGame(b.teams,b.league); if(fa&&!fb) return -1; if(!fa&&fb) return 1; return timeToMin(a.time)-timeToMin(b.time); });
+    document.getElementById('stat').textContent=games.length+' jogo'+(games.length!==1?'s':'')+' · mantosdofutebol.com.br';
+
+    if(!games.length){ document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>'; return; }
+
+    var h='<div class="glist">';
+    games.forEach(function(g){
+      var fem=isFem(g.league||''), fav=isFavGame(g.teams,g.league), cor=getColor(g.league||'');
+      var style='';
+      if(fav){ style='background:#fff5f5;border:2px solid var(--red);box-shadow:0 2px 12px rgba(229,57,53,0.15);'; }
+      else if(cor){ style='background:'+hexToRgba(cor,0.07)+';border-color:'+cor+';border-width:2px;'; }
+      h+='<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+'>'+
+        '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
+        '<div class="gm">'+
+          '<div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div>'+
+          '<div class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(g.league||'')+'</div>'+
+          (g.tv?'<div class="gtv">'+g.tv+'</div>':'')+
+        '</div></div>';
+    });
+    h+='</div>';
+    document.getElementById('out').innerHTML=h;
+  }
+
+  async function load(){
+    var btn=document.getElementById('refBtn'),icon=document.getElementById('refIcon');
+    btn.disabled=true; icon.className='spin';
+    document.getElementById('errorBox').style.display='none';
+    document.getElementById('out').innerHTML='<div class="loading"><div class="loading-spinner"></div><div>Bombacha buscando os jogos...</div></div>';
+    document.getElementById('leaguesWrap').style.display='none';
+    document.getElementById('stat').textContent='';
+    try{
+      var res=await fetch('/api/jogos');
+      if(!res.ok) throw new Error('Erro '+res.status);
+      var json=await res.json();
+      data.hoje=json.hoje||[]; data.amanha=json.amanha||[];
+      noFem=loadNoFem(); favTimes=loadFavs(); leagueColors=loadColors();
+      accOpen=loadAccOpen();
+      if(json.updatedAt){ var d=new Date(json.updatedAt); document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+      buildLeagues(); renderFavTags(); render();
+      // restaura estado do accordion
+      document.getElementById('accBody').className='acc-body'+(accOpen?' open':'');
+      document.getElementById('accArrow').className='acc-arrow'+(accOpen?' open':'');
+    }catch(e){
+      document.getElementById('out').innerHTML='';
+      document.getElementById('errorBox').style.display='block';
+      document.getElementById('errorBox').textContent='Erro ao buscar jogos: '+e.message;
+    }
+    btn.disabled=false; icon.className='';
+  }
+
+  load();
+  setInterval(load,60*60*1000);
+</script>
+</body>
+</html>
