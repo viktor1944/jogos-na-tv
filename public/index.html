@@ -31,8 +31,6 @@
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
     .container { max-width: 680px; margin: 0 auto; padding: 1.25rem 1rem 5rem; }
-
-    /* HEADER */
     .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; }
     .header-left { display: flex; align-items: center; gap: 12px; }
     h1 { font-size: 20px; font-weight: 600; }
@@ -47,8 +45,6 @@
     .icon-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
     .spin { display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* PAINEL CONFIG */
     .config-overlay { display: none; position: fixed; inset: 0; z-index: 200; }
     .config-overlay.open { display: block; }
     .config-dropdown { position: fixed; top: 0; right: -100%; width: min(360px, 92vw); height: 100vh; background: var(--surface); z-index: 201; transition: right 0.25s cubic-bezier(.4,0,.2,1); overflow-y: auto; box-shadow: -4px 0 24px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
@@ -76,18 +72,14 @@
     .color-tag-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
     .color-tag-edit { width: 24px; height: 24px; border: 1px solid var(--border2); border-radius: 4px; cursor: pointer; padding: 1px; background: none; flex-shrink: 0; }
     .color-tag button { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 16px; line-height: 1; flex-shrink: 0; }
-
-    /* TABS */
     .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; width: fit-content; margin-bottom: 1.25rem; }
     .tab { padding: 8px 22px; font-size: 14px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; }
     .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
-
-    /* ACCORDION CAMPEONATOS */
     .acc-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1.25rem; overflow: hidden; }
     .acc-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; user-select: none; transition: background 0.12s; }
-    .acc-header:hover { background: var(--border); }
+    .acc-header:hover { background: rgba(0,0,0,0.03); }
     .acc-header-left { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
-    .acc-arrow { font-size: 12px; color: var(--text3); transition: transform 0.2s; }
+    .acc-arrow { font-size: 11px; color: var(--text3); transition: transform 0.2s; }
     .acc-arrow.open { transform: rotate(180deg); }
     .acc-body { display: none; padding: 12px 14px 14px; border-top: 1px solid var(--border); }
     .acc-body.open { display: block; }
@@ -106,8 +98,6 @@
     .cb-row.nofem.checked .cb-box { background: var(--red); border-color: var(--red); }
     .cb-row span { font-size: 13px; color: var(--text2); }
     .cb-row.nofem span { color: var(--red); font-weight: 700; }
-
-    /* JOGOS */
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .glist { display: flex; flex-direction: column; gap: 5px; }
     .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; }
@@ -192,7 +182,6 @@
   <div id="errorBox" class="error" style="display:none;"></div>
   <div id="stat" class="stat"></div>
 
-  <!-- ACCORDION CAMPEONATOS -->
   <div class="acc-wrap" id="leaguesWrap" style="display:none;">
     <div class="acc-header" onclick="toggleAcc()">
       <div class="acc-header-left">
@@ -235,6 +224,8 @@
 
   var DEFAULT_COLORS=[
     {match:'champions league', color:'#c0392b'},
+    {match:'europa league',    color:'#e67e22'},
+    {match:'conference league',color:'#e67e22'},
     {match:'libertadores',     color:'#2980b9'},
     {match:'sul-americana',    color:'#2980b9'},
     {match:'sulamericana',     color:'#2980b9'},
@@ -242,18 +233,32 @@
     {match:'brasileirao serie a', color:'#1565c0'},
     {match:'brasileirão série b', color:'#f9a825'},
     {match:'brasileirao serie b', color:'#f9a825'},
-    {match:'la liga',  color:'#2e7d32'},
-    {match:'laliga',   color:'#2e7d32'},
-    {match:'serie a',  color:'#2e7d32'},
-    {match:'bundesliga', color:'#2e7d32'}
+    {match:'la liga',   color:'#2e7d32'},
+    {match:'laliga',    color:'#2e7d32'},
+    {match:'serie a',   color:'#2e7d32'},
+    {match:'bundesliga',color:'#2e7d32'}
   ];
+
+  // Remove parênteses e conteúdo dentro deles
+  function normalizeLeague(name){
+    return (name||'').replace(/\s*\(.*?\)/g,'').trim();
+  }
 
   function getDefaultColor(name){
     var n=(name||'').toLowerCase();
     for(var i=0;i<DEFAULT_COLORS.length;i++) if(n.indexOf(DEFAULT_COLORS[i].match)!==-1) return DEFAULT_COLORS[i].color;
     return null;
   }
-  function getColor(name){ return leagueColors[name]||getDefaultColor(name); }
+
+  function getColor(name){
+    // 1. cor personalizada com nome exato
+    if(leagueColors[name]) return leagueColors[name];
+    // 2. cor personalizada com nome normalizado (sem parênteses)
+    var norm=normalizeLeague(name);
+    if(leagueColors[norm]) return leagueColors[norm];
+    // 3. cor padrão pelo nome normalizado
+    return getDefaultColor(norm)||getDefaultColor(name);
+  }
 
   var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sulamericana','sul-americana','premier league','la liga','laliga','bundesliga'];
   function leaguePriority(n){ n=n.toLowerCase(); for(var i=0;i<PRIORITY.length;i++) if(n.indexOf(PRIORITY[i])!==-1) return i; return 999; }
@@ -302,17 +307,21 @@
   function renderColorSelect(){
     var sel=document.getElementById('colorSelect');
     sel.innerHTML='<option value="">Campeonato...</option>';
-    // todos os campeonatos disponíveis, sem bolinha
-    Array.from(leagues).sort().forEach(function(l){
+    // agrupa por nome normalizado, sem duplicatas, sem parênteses
+    var seen={};
+    Array.from(leagues).sort(function(a,b){
+      return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);
+    }).forEach(function(l){
+      var norm=normalizeLeague(l);
+      if(seen[norm]) return;
+      seen[norm]=true;
       var o=document.createElement('option');
-      o.value=l; o.textContent=l;
+      o.value=norm; o.textContent=norm;
       sel.appendChild(o);
     });
     sel.onchange=function(){
-      // ao selecionar, pre-preenche com a cor atual (personalizada ou padrão)
       var cor=getColor(sel.value);
-      if(cor) document.getElementById('colorPick').value=cor;
-      else document.getElementById('colorPick').value='#1D9E75';
+      document.getElementById('colorPick').value=cor||'#1D9E75';
     };
     renderColorTags();
   }
@@ -320,47 +329,57 @@
   function addColor(){
     var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick');
     if(!sel.value) return;
-    leagueColors[sel.value]=pick.value;
+    leagueColors[normalizeLeague(sel.value)]=pick.value;
     savePref(); renderColorSelect(); render();
   }
 
+  function editColor(l,val){
+    leagueColors[normalizeLeague(l)]=val;
+    savePref(); render();
+    // atualiza o dot inline
+    var dots=document.querySelectorAll('[data-colordot="'+l+'"]');
+    dots.forEach(function(d){ d.style.background=val; });
+  }
+
   function removeColor(l){
-    delete leagueColors[l]; savePref(); renderColorSelect(); render();
+    var norm=normalizeLeague(l);
+    delete leagueColors[norm];
+    delete leagueColors[l];
+    savePref(); renderColorSelect(); render();
   }
 
   function renderColorTags(){
     var box=document.getElementById('colorTags'); box.innerHTML='';
     var shown={};
 
-    // Personalizados primeiro
-    Object.keys(leagueColors).forEach(function(l){
+    // personalizados
+    Object.keys(leagueColors).sort().forEach(function(l){
       shown[l]=true;
+      var cor=leagueColors[l];
       var div=document.createElement('div'); div.className='color-tag';
       div.innerHTML=
-        '<div class="color-dot" style="background:'+leagueColors[l]+'"></div>'+
+        '<div class="color-dot" data-colordot="'+l+'" style="background:'+cor+'"></div>'+
         '<span class="color-tag-name">'+l+'</span>'+
-        '<input class="color-tag-edit" type="color" value="'+leagueColors[l]+'" title="Editar cor" onchange="editColor(\''+l.replace(/'/g,"\\'")+'\', this.value)"/>'+
-        '<button onclick="removeColor(\''+l.replace(/'/g,"\\'")+'\')">×</button>';
+        '<input class="color-tag-edit" type="color" value="'+cor+'" title="Editar" onchange="editColor(\''+l.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\',this.value)"/>'+
+        '<button onclick="removeColor(\''+l.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">×</button>';
       box.appendChild(div);
     });
 
-    // Padrões (editáveis também)
-    Array.from(leagues).sort(function(a,b){return leaguePriority(a)-leaguePriority(b);}).forEach(function(l){
-      if(shown[l]) return;
-      var dc=getDefaultColor(l); if(!dc) return;
+    // padrões presentes nos jogos de hoje/amanhã
+    var seenNorm={};
+    Array.from(leagues).sort(function(a,b){ return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b); }).forEach(function(l){
+      var norm=normalizeLeague(l);
+      if(shown[norm]||shown[l]||seenNorm[norm]) return;
+      var dc=getDefaultColor(norm); if(!dc) return;
+      seenNorm[norm]=true;
       var div=document.createElement('div'); div.className='color-tag';
       div.innerHTML=
         '<div class="color-dot" style="background:'+dc+'"></div>'+
-        '<span class="color-tag-name">'+l+' <small style="color:var(--text3);font-weight:400">(padrão)</small></span>'+
-        '<input class="color-tag-edit" type="color" value="'+dc+'" title="Editar cor" onchange="editColor(\''+l.replace(/'/g,"\\'")+'\', this.value)"/>'+
-        '<button onclick="removeColor(\''+l.replace(/'/g,"\\'")+'\')">×</button>';
+        '<span class="color-tag-name">'+norm+' <small style="color:var(--text3)">(padrão)</small></span>'+
+        '<input class="color-tag-edit" type="color" value="'+dc+'" title="Editar" onchange="editColor(\''+norm.replace(/'/g,"\\'")+'\',this.value)"/>'+
+        '<button onclick="removeColor(\''+norm.replace(/'/g,"\\'")+'\')">×</button>';
       box.appendChild(div);
     });
-  }
-
-  function editColor(l, val){
-    leagueColors[l]=val;
-    savePref(); renderColorSelect(); render();
   }
 
   function swTab(t){ tab=t; document.getElementById('tH').className='tab'+(t==='hoje'?' on':''); document.getElementById('tA').className='tab'+(t==='amanha'?' on':''); buildLeagues(); render(); }
@@ -442,7 +461,6 @@
       accOpen=loadAccOpen();
       if(json.updatedAt){ var d=new Date(json.updatedAt); document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
       buildLeagues(); renderFavTags(); render();
-      // restaura estado do accordion
       document.getElementById('accBody').className='acc-body'+(accOpen?' open':'');
       document.getElementById('accArrow').className='acc-arrow'+(accOpen?' open':'');
     }catch(e){
