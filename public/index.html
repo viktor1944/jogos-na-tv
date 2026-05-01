@@ -46,23 +46,24 @@
     .spin { display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* BANNER */
+    /* TABS + BANNER na mesma linha */
+    .tabs-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
+    .tab { padding: 8px 14px; font-size: 13px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+    .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
+
+    /* BANNER inline */
     .banner {
+      display: flex; align-items: center; gap: 7px;
       background: linear-gradient(135deg, #ff6b00, #ff9500);
-      border-radius: var(--radius-lg);
-      padding: 10px 14px;
-      margin-bottom: 1.25rem;
-      display: flex; align-items: center; gap: 10px;
-      cursor: pointer;
-      box-shadow: 0 3px 12px rgba(255,107,0,0.3);
-      animation: pulse 2s ease-in-out infinite;
+      border-radius: 20px; padding: 6px 12px 6px 10px;
+      cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(255,107,0,0.35);
+      animation: pulse 2.5s ease-in-out infinite;
     }
-    @keyframes pulse { 0%,100%{box-shadow:0 3px 12px rgba(255,107,0,0.3);} 50%{box-shadow:0 3px 20px rgba(255,107,0,0.6);} }
-    .banner-icon { font-size: 22px; flex-shrink: 0; }
-    .banner-text { flex: 1; }
-    .banner-text strong { display: block; font-size: 13px; font-weight: 700; color: white; }
-    .banner-text span { font-size: 12px; color: rgba(255,255,255,0.85); }
-    .banner-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{box-shadow:0 2px 10px rgba(255,107,0,0.35);} 50%{box-shadow:0 2px 18px rgba(255,107,0,0.6);} }
+    .banner-text { font-size: 12px; font-weight: 700; color: white; white-space: nowrap; }
+    .banner-close { background: rgba(255,255,255,0.3); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 2px; line-height: 1; }
 
     /* CONFIG */
     .config-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.3); }
@@ -108,11 +109,6 @@
     .popup-cancel { margin-top: 8px; width: 100%; padding: 12px; border: none; background: none; color: var(--text3); font-size: 14px; cursor: pointer; border-radius: var(--radius); }
     .popup-cancel:hover { background: var(--surface2); }
 
-    /* TABS */
-    .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; width: fit-content; margin-bottom: 1.25rem; }
-    .tab { padding: 8px 14px; font-size: 13px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
-    .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
-
     /* ACCORDION */
     .acc-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1.25rem; overflow: hidden; }
     .acc-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; user-select: none; transition: background 0.12s; }
@@ -142,36 +138,14 @@
     /* JOGOS */
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .glist { display: flex; flex-direction: column; gap: 5px; }
-    .gc {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: var(--radius); padding: 11px 14px;
-      display: flex; align-items: flex-start; gap: 12px;
-      cursor: pointer; transition: filter 0.12s;
-    }
-    .gc:hover { filter: brightness(0.97); }
-    .gc.favorito {
-      border-width: 2.5px; border-color: var(--red);
-      box-shadow: 0 4px 20px rgba(229,57,53,0.25);
-      background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
-      position: relative; overflow: hidden;
-    }
-    .gc.favorito::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, var(--red), #ff6b6b, var(--red));
-      background-size: 200% 100%;
-      animation: shimmer 2s linear infinite;
-    }
+    .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: filter 0.12s; }
+    .gc:active { filter: brightness(0.95); }
+    .gc.favorito { border-width: 2.5px; border-color: var(--red); box-shadow: 0 4px 20px rgba(229,57,53,0.25); background: linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%); position: relative; overflow: hidden; }
+    .gc.favorito::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--red),#ff6b6b,var(--red)); background-size:200% 100%; animation:shimmer 2s linear infinite; }
     @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
     .gc.favorito .gt { color: var(--red) !important; font-weight: 700; }
     .gc.favorito .gn { font-weight: 700; }
-    .fav-badge {
-      display: inline-flex; align-items: center; gap: 3px;
-      font-size: 10px; font-weight: 700; color: white;
-      background: var(--red); border-radius: 4px;
-      padding: 2px 7px; margin-left: 6px;
-      box-shadow: 0 1px 4px rgba(229,57,53,0.4);
-    }
+    .fav-badge { display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:white;background:var(--red);border-radius:4px;padding:2px 7px;margin-left:6px;box-shadow:0 1px 4px rgba(229,57,53,0.4); }
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; padding-top: 1px; }
     .gm { flex: 1; min-width: 0; }
     .gn { font-size: 14px; font-weight: 500; color: var(--text); }
@@ -191,7 +165,6 @@
 </head>
 <body>
 
-<!-- CONFIG PANEL -->
 <div class="config-overlay" id="overlay" onclick="closeConfig()"></div>
 <div class="config-dropdown" id="configPanel">
   <div class="config-head">
@@ -219,7 +192,6 @@
   </div>
 </div>
 
-<!-- POPUP JOGO -->
 <div class="popup-overlay" id="popupOverlay" onclick="closePopup()">
   <div class="popup-box" onclick="event.stopPropagation()">
     <div class="popup-title">Ações do jogo</div>
@@ -252,20 +224,18 @@
     </div>
   </div>
 
-  <!-- BANNER -->
-  <div class="banner" id="banner" onclick="openConfig(); closeBanner();">
-    <div class="banner-icon">🎨</div>
-    <div class="banner-text">
-      <strong>Personalize seus jogos!</strong>
-      <span>Altere as cores nas configurações — vai te facilitar muito!</span>
+  <!-- TABS + BANNER na mesma linha -->
+  <div class="tabs-row">
+    <div class="tabs">
+      <button class="tab on" onclick="swTab('hoje')" id="tH">Hoje</button>
+      <button class="tab" onclick="swTab('amanha')" id="tA">Amanhã</button>
+      <button class="tab" onclick="swTab('depois')" id="tD">Depois de Amanhã</button>
     </div>
-    <button class="banner-close" onclick="event.stopPropagation(); closeBanner();">×</button>
-  </div>
-
-  <div class="tabs">
-    <button class="tab on" onclick="swTab('hoje')" id="tH">Hoje</button>
-    <button class="tab" onclick="swTab('amanha')" id="tA">Amanhã</button>
-    <button class="tab" onclick="swTab('depois')" id="tD">Depois de Amanhã</button>
+    <div class="banner" id="banner" onclick="openConfig(); closeBanner();">
+      <span style="font-size:16px;">🎨</span>
+      <span class="banner-text">Altere as cores nas configurações!</span>
+      <button class="banner-close" onclick="event.stopPropagation(); closeBanner();">×</button>
+    </div>
   </div>
 
   <div id="errorBox" class="error" style="display:none;"></div>
@@ -305,42 +275,39 @@
   var noFem=false, favTimes=[], leagueColors={}, allLeaguesSeen={};
   var currentPopupGame=null;
 
-  // Cores padrão — match EXATO (não substring que pega variações indesejadas)
-  var DEFAULT_COLORS=[
-    {match:'uefa champions league', color:'#c0392b'},
-    {match:'champions league', color:'#c0392b'},
-    {match:'uefa europa league', color:'#e67e22'},
-    {match:'europa league', color:'#e67e22'},
-    {match:'uefa conference league', color:'#e67e22'},
-    {match:'conference league', color:'#e67e22'},
-    {match:'conmebol libertadores', color:'#2980b9'},
-    {match:'libertadores', color:'#2980b9'},
-    {match:'conmebol sul-americana', color:'#2980b9'},
-    {match:'sul-americana', color:'#2980b9'},
-    {match:'brasileirão série a', color:'#1565c0'},
-    {match:'brasileirao serie a', color:'#1565c0'},
-    {match:'brasileirão série b', color:'#f9a825'},
-    {match:'brasileirao serie b', color:'#f9a825'},
-    {match:'premier league', color:'#38003c'},
-    {match:'la liga', color:'#2e7d32'},      // La Liga mas NÃO La Liga 2
-    {match:'bundesliga', color:'#d32f2f'},   // Bundesliga mas NÃO Bundesliga Feminina
-    {match:'serie a', color:'#1a237e'}       // Serie A italiana
+  // Cores padrão — lista EXATA dos campeonatos que o usuário pediu
+  // Usa comparação exata do nome normalizado (sem parênteses, lowercase)
+  var DEFAULT_COLORS_EXACT = [
+    // Champions League — exatamente esses nomes
+    { names: ['uefa champions league','champions league'], color: '#c0392b' },
+    // Libertadores
+    { names: ['conmebol libertadores','libertadores'], color: '#1565c0' },
+    // Sul-Americana
+    { names: ['conmebol sul-americana','sul-americana','sulamericana'], color: '#1565c0' },
+    // Brasileirão Série A — exato, não Série B
+    { names: ['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'], color: '#009c3b' },
+    // Brasileirão Série B — exato
+    { names: ['brasileirão série b','brasileirao serie b'], color: '#f9a825' },
+    // Premier League — exato
+    { names: ['premier league'], color: '#38003c' },
+    // La Liga — exato, NÃO La Liga 2
+    { names: ['la liga','laliga'], color: '#ee1d23' },
+    // Bundesliga — exato, NÃO Bundesliga Feminina
+    { names: ['bundesliga'], color: '#d32f2f' },
+    // Serie A italiana — exato
+    { names: ['serie a'], color: '#1a237e' },
   ];
 
   function getDefaultColor(name){
     if(!name) return null;
-    var n=name.toLowerCase().trim();
-    // remove parênteses pra comparar
-    var norm=n.replace(/\s*\(.*?\)/g,'').trim();
-    for(var i=0;i<DEFAULT_COLORS.length;i++){
-      var m=DEFAULT_COLORS[i].match;
-      // match exato no nome normalizado (sem parênteses)
-      // La Liga deve ser exato: "la liga" não "la liga 2"
-      // Bundesliga exato: "bundesliga" não "bundesliga feminina"
-      if(norm===m) return DEFAULT_COLORS[i].color;
-      // também testa se começa com o match seguido de espaço ou fim
-      // para pegar "CONMEBOL Libertadores" com "Libertadores"
-      if(norm.startsWith(m) && (norm.length===m.length || norm[m.length]===' ')) return DEFAULT_COLORS[i].color;
+    // normaliza: lowercase, sem parênteses, sem espaços extras
+    var norm=name.toLowerCase().replace(/\s*\(.*?\)/g,'').trim();
+    for(var i=0;i<DEFAULT_COLORS_EXACT.length;i++){
+      var entry=DEFAULT_COLORS_EXACT[i];
+      for(var j=0;j<entry.names.length;j++){
+        // match EXATO
+        if(norm===entry.names[j]) return entry.color;
+      }
     }
     return null;
   }
@@ -362,7 +329,6 @@
   function timeToMin(t){ var p=t.replace('h',':').split(':'); return parseInt(p[0])*60+parseInt(p[1]||0); }
   function nowMin(){ var n=new Date(); return n.getHours()*60+n.getMinutes(); }
 
-  // Extrai times (sem "feminino") de uma string "Time A x Time B"
   function extractTeams(teams){
     var parts=(teams||'').split(/\s+x\s+/i);
     return parts.map(function(t){ return t.replace(/\s*(feminino|feminina)\s*/gi,'').trim(); }).filter(function(t){ return t.length>0; });
@@ -424,15 +390,12 @@
   function openConfig(){ document.getElementById('overlay').classList.add('open'); document.getElementById('configPanel').classList.add('open'); renderColorSelect(); }
   function closeConfig(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('configPanel').classList.remove('open'); }
 
-  // POPUP
   function openPopup(g){
     currentPopupGame=g;
     document.getElementById('popupMatch').textContent=g.teams;
     document.getElementById('popupLeague').textContent=g.league||'';
     var actions=document.getElementById('popupActions');
     actions.innerHTML='';
-
-    // opções de adicionar time ao favorito (só masculino)
     var teams=extractTeams(g.teams);
     teams.forEach(function(team){
       if(!team) return;
@@ -441,42 +404,25 @@
       btn.className='popup-btn';
       if(alreadyFav){
         btn.innerHTML='<span class="popup-btn-icon">⭐</span><span>Remover <strong>'+team+'</strong> dos favoritos</span>';
-        btn.onclick=function(){
-          favTimes=favTimes.filter(function(f){ return f.toLowerCase()!==team.toLowerCase(); });
-          savePref(); renderFavTags(); render(); closePopup();
-        };
+        btn.onclick=function(){ favTimes=favTimes.filter(function(f){ return f.toLowerCase()!==team.toLowerCase(); }); savePref(); renderFavTags(); render(); closePopup(); };
       } else {
         btn.innerHTML='<span class="popup-btn-icon">⭐</span><span>Adicionar <strong>'+team+'</strong> como favorito</span>';
-        btn.onclick=function(){
-          if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(team.toLowerCase())===-1){
-            favTimes.push(team); savePref(); renderFavTags(); render();
-          }
-          closePopup();
-        };
+        btn.onclick=function(){ if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(team.toLowerCase())===-1){ favTimes.push(team); savePref(); renderFavTags(); render(); } closePopup(); };
       }
       actions.appendChild(btn);
     });
-
-    // opção de mudar cor do campeonato
     var norm=normalizeLeague(g.league||'');
     var currentColor=getColor(g.league||'')||'#1D9E75';
     var colorDiv=document.createElement('div');
     colorDiv.className='popup-btn';
     colorDiv.style.justifyContent='space-between';
     colorDiv.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><span class="popup-btn-icon">🎨</span><span>Cor de <strong>'+norm+'</strong></span></div><input type="color" value="'+currentColor+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/>';
-    colorDiv.querySelector('input').onchange=function(e){
-      leagueColors[norm]=e.target.value;
-      savePref(); render();
-    };
+    colorDiv.querySelector('input').onchange=function(e){ leagueColors[norm]=e.target.value; savePref(); render(); };
     actions.appendChild(colorDiv);
-
     document.getElementById('popupOverlay').classList.add('open');
   }
 
-  function closePopup(){
-    document.getElementById('popupOverlay').classList.remove('open');
-    currentPopupGame=null;
-  }
+  function closePopup(){ document.getElementById('popupOverlay').classList.remove('open'); currentPopupGame=null; }
 
   function addFav(){
     var inp=document.getElementById('favInput'),val=inp.value.trim();
@@ -498,12 +444,7 @@
     sel.onchange=function(){ var cor=getColor(sel.value); document.getElementById('colorPick').value=cor||'#1D9E75'; };
     renderColorTags();
   }
-  function addColor(){
-    var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick');
-    if(!sel.value) return;
-    leagueColors[normalizeLeague(sel.value)]=pick.value;
-    savePref(); renderColorSelect(); render();
-  }
+  function addColor(){ var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick'); if(!sel.value) return; leagueColors[normalizeLeague(sel.value)]=pick.value; savePref(); renderColorSelect(); render(); }
   function editColor(l,val){ leagueColors[normalizeLeague(l)]=val; savePref(); render(); }
   function removeColor(l){ var nm=normalizeLeague(l); delete leagueColors[nm]; delete leagueColors[l]; savePref(); renderColorSelect(); render(); }
   function renderColorTags(){
@@ -524,18 +465,11 @@
     });
   }
 
-  function swTab(t){
-    tab=t;
-    document.getElementById('tH').className='tab'+(t==='hoje'?' on':'');
-    document.getElementById('tA').className='tab'+(t==='amanha'?' on':'');
-    document.getElementById('tD').className='tab'+(t==='depois'?' on':'');
-    render();
-  }
+  function swTab(t){ tab=t; document.getElementById('tH').className='tab'+(t==='hoje'?' on':''); document.getElementById('tA').className='tab'+(t==='amanha'?' on':''); document.getElementById('tD').className='tab'+(t==='depois'?' on':''); render(); }
 
   function buildActive(){
     allSeenLeagues=new Set(Object.keys(allLeaguesSeen));
-    var off=loadSaved();
-    active=new Set();
+    var off=loadSaved(); active=new Set();
     allSeenLeagues.forEach(function(l){ if(off.indexOf(l)===-1) active.add(l); });
     if(noFem) allSeenLeagues.forEach(function(l){ if(isFem(l)) active.delete(l); });
   }
@@ -547,10 +481,7 @@
 
   function getTabGames(){
     var games=data[tab]||[];
-    if(tab==='hoje'){
-      var cutoff=nowMin()-240;
-      games=games.filter(function(g){ return timeToMin(g.time)>=cutoff; });
-    }
+    if(tab==='hoje'){ var cutoff=nowMin()-240; games=games.filter(function(g){ return timeToMin(g.time)>=cutoff; }); }
     return games;
   }
 
@@ -573,10 +504,7 @@
     else{
       wrap.style.display='block';
       document.getElementById('lcnt').textContent=active.size+'/'+allArr.length+' selecionados';
-      var sorted=allArr.slice().sort(function(a,b){
-        var fa=isFem(a),fb=isFem(b); if(fa&&!fb) return 1; if(!fa&&fb) return -1;
-        var pa=leaguePriority(a),pb=leaguePriority(b); if(pa!==pb) return pa-pb; return a.localeCompare(b);
-      });
+      var sorted=allArr.slice().sort(function(a,b){ var fa=isFem(a),fb=isFem(b); if(fa&&!fb) return 1; if(!fa&&fb) return -1; var pa=leaguePriority(a),pb=leaguePriority(b); if(pa!==pb) return pa-pb; return a.localeCompare(b); });
       sorted.forEach(function(l){
         var fem=isFem(l), cor=getColor(l), isOn=active.has(l), hasToday=leagueHasGameToday(l);
         var c=document.createElement('div');
@@ -601,13 +529,13 @@
 
     if(!games.length){ document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>'; return; }
 
+    window.filteredGames=games;
     var h='<div class="glist">';
     games.forEach(function(g,idx){
       var fem=isFem(g.league||''), fav=isFavGame(g.teams,g.league), cor=getColor(g.league||'');
       var style='';
-      if(fav){ style=''; } // favorito usa classe CSS
-      else if(cor){ style='background:'+hexToRgba(cor,0.07)+';border-color:'+cor+';border-width:2px;'; }
-      h+='<div class="gc'+(fav?' favorito':'')+'" data-idx="'+idx+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
+      if(!fav&&cor){ style='background:'+hexToRgba(cor,0.07)+';border-color:'+cor+';border-width:2px;'; }
+      h+='<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
         '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
         '<div class="gm">'+
           '<div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div>'+
@@ -617,7 +545,6 @@
     });
     h+='</div>';
     document.getElementById('out').innerHTML=h;
-    window.filteredGames=games;
   }
 
   async function load(){
@@ -639,7 +566,6 @@
       accumulateLeagues(data.hoje); accumulateLeagues(data.amanha); accumulateLeagues(data.depois);
       buildActive();
       if(json.updatedAt){ var d=new Date(json.updatedAt); document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
-      // banner
       if(loadBannerClosed()) document.getElementById('banner').style.display='none';
       renderFavTags(); render();
       document.getElementById('accBody').className='acc-body';
