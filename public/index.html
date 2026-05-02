@@ -31,16 +31,16 @@
         --tv-color: #4ecba0;
       }
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
     .container { max-width: 680px; margin: 0 auto; padding: 1.25rem 1rem 5rem; }
     .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; }
-    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
     h1 { font-size: 20px; font-weight: 600; }
     .subtitle { font-size: 12px; color: var(--text3); margin-top: 1px; }
     .bombacha-header { width: 52px; height: 52px; border-radius: 50%; border: 2.5px solid var(--green); overflow: hidden; flex-shrink: 0; box-shadow: 0 2px 8px rgba(29,158,117,0.3); transition: transform 0.2s; cursor: pointer; }
     .bombacha-header:hover { transform: scale(1.08) rotate(-3deg); }
     .bombacha-header img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
-    .header-right { display: flex; align-items: center; gap: 8px; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .icon-btn { padding: 7px 12px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background 0.15s; white-space: nowrap; }
     .icon-btn:hover { background: var(--surface2); }
     .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -68,9 +68,9 @@
     .cfg-sec { display: flex; flex-direction: column; gap: 10px; }
     .cfg-sec-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
     .fav-input-row { display: flex; gap: 8px; }
-    .fav-input { flex: 1; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); outline: none; }
+    .fav-input { flex: 1; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); outline: none; min-width: 0; }
     .fav-input:focus { border-color: var(--green); background: var(--surface); }
-    .fav-add { padding: 8px 12px; font-size: 13px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; }
+    .fav-add { padding: 8px 12px; font-size: 13px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; flex-shrink: 0; }
     .fav-tags { display: flex; flex-wrap: wrap; gap: 6px; }
     .fav-tag { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: #fff0f0; border: 2px solid var(--red); font-size: 12px; color: var(--red); font-weight: 600; }
     .fav-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 15px; line-height: 1; padding: 0; margin-left: 2px; }
@@ -79,9 +79,9 @@
     .color-pick { width: 34px; height: 32px; border: 1px solid var(--border2); border-radius: var(--radius); cursor: pointer; padding: 2px; background: none; flex-shrink: 0; }
     .color-add { padding: 7px 10px; font-size: 13px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
     .color-tags { display: flex; flex-direction: column; gap: 5px; }
-    .color-tag { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); font-size: 12px; }
+    .color-tag { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); }
     .color-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
-    .color-tag-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+    .color-tag-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; min-width: 0; }
     .color-tag-edit { width: 24px; height: 24px; border: 1px solid var(--border2); border-radius: 4px; cursor: pointer; padding: 1px; background: none; flex-shrink: 0; }
     .remove-cor-btn { width: 22px; height: 22px; border: 2px solid var(--border2); border-radius: 4px; background: white; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text3); font-size: 11px; font-weight: 700; flex-shrink: 0; transition: all 0.12s; user-select: none; }
     .remove-cor-btn:hover { border-color: var(--red); color: var(--red); background: #fff5f5; }
@@ -126,7 +126,7 @@
 
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .glist { display: flex; flex-direction: column; gap: 5px; }
-    .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: filter 0.12s; }
+    .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
     .gc:active { filter: brightness(0.95); }
     .gc.favorito { border-width: 2.5px; border-color: var(--red); box-shadow: 0 4px 20px rgba(229,57,53,0.25); background: linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%); position: relative; overflow: hidden; }
     .gc.favorito::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--red),#ff6b6b,var(--red)); background-size:200% 100%; animation:shimmer 2s linear infinite; }
@@ -134,12 +134,12 @@
     .gc.favorito .gt { color: var(--red) !important; font-weight: 700; }
     .gc.favorito .gn { font-weight: 700; }
     .fav-badge { display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:white;background:var(--red);border-radius:4px;padding:2px 7px;margin-left:6px;box-shadow:0 1px 4px rgba(229,57,53,0.4); }
-    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 42px; flex-shrink: 0; }
-    .gm { flex: 1; min-width: 0; }
-    .gn-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-    .gn { font-size: 15px; font-weight: 500; color: var(--text); }
-    .gtv { font-size: 12px; color: var(--tv-color); font-weight: 500; white-space: nowrap; flex-shrink: 0; }
-    .gl { font-size: 11px; color: var(--text3); margin-top: 3px; }
+    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; }
+    .gm { flex: 1; min-width: 0; overflow: hidden; }
+    .gn-row { display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; }
+    .gn { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
+    .gtv { font-size: 12px; color: var(--tv-color); font-weight: 500; white-space: nowrap; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+    .gl { font-size: 11px; color: var(--text3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .gl.fem { color: var(--pink); }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
     .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -260,22 +260,28 @@
   var data={hoje:[],amanha:[],depois:[]};
   var tab='hoje', active=new Set(), allSeenLeagues=new Set();
   var noFem=false, favTimes=[], leagueColors={}, allLeaguesSeen={};
+  // cores removidas pelo usuario (para suprimir padrao)
+  var removedColors={};
 
   var DEFAULT_COLORS_EXACT=[
-    {names:['uefa champions league','champions league'], color:'#1a237e'},
-    {names:['conmebol libertadores','libertadores'], color:'#1565c0'},
-    {names:['conmebol sul-americana','sul-americana','sulamericana'], color:'#0288d1'},
+    {names:['uefa champions league','champions league'], color:'#1565c0'},
+    {names:['conmebol libertadores','libertadores'], color:'#6a1b9a'},
+    {names:['conmebol sul-americana','sul-americana','sulamericana'], color:'#00838f'},
     {names:['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'], color:'#009c3b'},
     {names:['brasileirão série b','brasileirao serie b'], color:'#f9a825'},
-    {names:['premier league'], color:'#38003c'},
+    {names:['premier league'], color:'#4a148c'},
     {names:['la liga','laliga'], color:'#ee1d23'},
-    {names:['bundesliga'], color:'#ff8f00'},
-    {names:['serie a'], color:'#0288d1'},
+    {names:['bundesliga'], color:'#e65100'},
+    {names:['serie a'], color:'#0277bd'},
+    {names:['copa do brasil'], color:'#558b2f'},
+    {names:['ligue 1'], color:'#283593'},
   ];
 
   function getDefaultColor(name){
     if(!name) return null;
     var norm=name.toLowerCase().replace(/\s*\(.*?\)/g,'').trim();
+    // verifica se foi removida pelo usuario
+    if(removedColors[norm]) return null;
     for(var i=0;i<DEFAULT_COLORS_EXACT.length;i++){
       var e=DEFAULT_COLORS_EXACT[i];
       for(var j=0;j<e.names.length;j++) if(norm===e.names[j]) return e.color;
@@ -284,15 +290,19 @@
   }
 
   function normalizeLeague(n){ return (n||'').replace(/\s*\(.*?\)/g,'').trim(); }
+
   function getColor(n){
     if(!n) return null;
-    if(leagueColors[n]) return leagueColors[n];
     var nm=normalizeLeague(n);
+    // cor personalizada tem prioridade
     if(leagueColors[nm]) return leagueColors[nm];
+    if(leagueColors[n]) return leagueColors[n];
+    // verifica se removida
+    if(removedColors[nm]) return null;
     return getDefaultColor(nm)||getDefaultColor(n);
   }
 
-  var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sulamericana','sul-americana','premier league','la liga','laliga','bundesliga'];
+  var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sulamericana','sul-americana','premier league','la liga','laliga','bundesliga','ligue 1'];
   function leaguePriority(n){ n=(n||'').toLowerCase(); for(var i=0;i<PRIORITY.length;i++) if(n.indexOf(PRIORITY[i])!==-1) return i; return 999; }
   function isFem(n){ n=(n||'').toLowerCase(); return n.indexOf('feminino')!==-1||n.indexOf('feminina')!==-1||n.indexOf('nwsl')!==-1||n.indexOf('inglês feminino')!==-1; }
   function isFavGame(teams,league){ if(!favTimes.length) return false; if(noFem&&isFem(league)) return false; var t=(teams||'').toLowerCase(); return favTimes.some(function(f){ return t.indexOf(f.toLowerCase())!==-1; }); }
@@ -306,6 +316,7 @@
   function loadNoFem(){ return ls('jogos_nofem')==='true'; }
   function loadFavs(){ try{return JSON.parse(ls('jogos_favs')||'[]');}catch(e){return[];} }
   function loadColors(){ try{return JSON.parse(ls('jogos_colors')||'{}');}catch(e){return{};} }
+  function loadRemovedColors(){ try{return JSON.parse(ls('jogos_removed_colors')||'{}');}catch(e){return{};} }
   function loadSeenLeagues(){ try{return JSON.parse(ls('jogos_seen')||'{}');}catch(e){return{};} }
   function saveSeenLeagues(){ try{ls('jogos_seen',JSON.stringify(allLeaguesSeen));}catch(e){} }
   function loadBannerClosed(){ return ls('banner_closed')==='true'; }
@@ -333,13 +344,25 @@
       ls('jogos_nofem',noFem?'true':'false');
       ls('jogos_favs',JSON.stringify(favTimes));
       ls('jogos_colors',JSON.stringify(leagueColors));
+      ls('jogos_removed_colors',JSON.stringify(removedColors));
     }catch(e){}
   }
 
   function removeColor(l){
     var nm=normalizeLeague(l);
+    // remove personalizada
     delete leagueColors[nm];
     delete leagueColors[l];
+    // marca padrao como removida
+    removedColors[nm]=true;
+    savePref();
+    renderColorSelect();
+    render();
+  }
+
+  function restoreColor(l){
+    var nm=normalizeLeague(l);
+    delete removedColors[nm];
     savePref();
     renderColorSelect();
     render();
@@ -363,11 +386,13 @@
       btn.className='popup-btn';
       btn.style.justifyContent='flex-start';
       btn.innerHTML='<span class="popup-btn-icon">'+(isFav?'💔':'⭐')+'</span><span>'+(isFav?'Remover ':'Favoritar ')+'<strong>'+team+'</strong></span>';
-      btn.onclick=function(){
-        if(isFav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==team.toLowerCase();});
-        else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(team.toLowerCase())===-1) favTimes.push(team);
-        savePref(); renderFavTags(); render(); closePopup();
-      };
+      (function(t,fav){
+        btn.addEventListener('click',function(){
+          if(fav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==t.toLowerCase();});
+          else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(t.toLowerCase())===-1) favTimes.push(t);
+          savePref(); renderFavTags(); render(); closePopup();
+        });
+      })(team, isFav);
       actions.appendChild(btn);
     });
 
@@ -385,22 +410,19 @@
         '<input type="color" value="'+currentColor+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/>'+
       '</div>';
 
-    var removeBtn=colorDiv.querySelector('.remove-cor-btn');
-    var colorInput=colorDiv.querySelector('input[type=color]');
-    var capturedNorm=norm;
-    var capturedLeague=g.league||'';
-
-    removeBtn.addEventListener('click',function(e){
-      e.stopPropagation();
-      delete leagueColors[capturedNorm];
-      delete leagueColors[capturedLeague];
-      savePref(); render(); closePopup();
-    });
-
-    colorInput.addEventListener('change',function(e){
-      leagueColors[capturedNorm]=e.target.value;
-      savePref(); render();
-    });
+    (function(nm, league){
+      colorDiv.querySelector('.remove-cor-btn').addEventListener('click',function(e){
+        e.stopPropagation();
+        removeColor(nm);
+        closePopup();
+      });
+      colorDiv.querySelector('input[type=color]').addEventListener('change',function(e){
+        leagueColors[nm]=e.target.value;
+        // se estava na lista de removidas, remove dessa lista
+        delete removedColors[nm];
+        savePref(); render();
+      });
+    })(norm, g.league||'');
 
     actions.appendChild(colorDiv);
     document.getElementById('popupOverlay').classList.add('open');
@@ -433,48 +455,66 @@
   function addColor(){
     var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick');
     if(!sel.value) return;
-    leagueColors[normalizeLeague(sel.value)]=pick.value;
+    var nm=normalizeLeague(sel.value);
+    leagueColors[nm]=pick.value;
+    delete removedColors[nm];
     savePref(); renderColorSelect(); render();
   }
 
-  function editColor(l,val){ leagueColors[normalizeLeague(l)]=val; savePref(); render(); }
+  function editColor(l,val){
+    var nm=normalizeLeague(l);
+    leagueColors[nm]=val;
+    delete removedColors[nm];
+    savePref(); render();
+  }
 
   function renderColorTags(){
     var box=document.getElementById('colorTags');
     box.innerHTML='';
     var shown={};
 
+    // personalizados
     Object.keys(leagueColors).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(l){
       shown[l]=true;
       var cor=leagueColors[l];
-      var safe=l.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       var div=document.createElement('div'); div.className='color-tag';
       div.innerHTML=
         '<div class="color-dot" style="background:'+cor+'"></div>'+
         '<span class="color-tag-name">'+l+'</span>'+
-        '<input class="color-tag-edit" type="color" value="'+cor+'" onchange="editColor(\''+safe+'\',this.value)"/>'+
+        '<input class="color-tag-edit" type="color" value="'+cor+'"/>'+
         '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>';
-      var capturedL=l;
-      div.querySelector('.remove-cor-btn').addEventListener('click',function(){
-        removeColor(capturedL);
-      });
+      (function(capturedL, capturedCor, editInput){
+        editInput.addEventListener('change',function(e){ editColor(capturedL,e.target.value); });
+        div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(capturedL); });
+      })(l, cor, div.querySelector('input[type=color]'));
       box.appendChild(div);
     });
 
+    // padrões presentes
     Object.keys(allLeaguesSeen).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(norm){
       if(shown[norm]) return;
-      var dc=getDefaultColor(norm); if(!dc) return;
-      var safe=norm.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var isRemoved=removedColors[norm];
+      var dc=getDefaultColor(norm);
+      // mostra se tem cor padrão OU se foi removida (pra permitir restaurar)
+      if(!dc && !isRemoved) return;
+      var displayColor=isRemoved?'#cccccc':(dc||'#cccccc');
       var div=document.createElement('div'); div.className='color-tag';
       div.innerHTML=
-        '<div class="color-dot" style="background:'+dc+'"></div>'+
-        '<span class="color-tag-name">'+norm+' <small style="color:var(--text3)">(padrão)</small></span>'+
-        '<input class="color-tag-edit" type="color" value="'+dc+'" onchange="editColor(\''+safe+'\',this.value)"/>'+
-        '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>';
-      var capturedNorm=norm;
-      div.querySelector('.remove-cor-btn').addEventListener('click',function(){
-        removeColor(capturedNorm);
-      });
+        '<div class="color-dot" style="background:'+displayColor+';'+(isRemoved?'opacity:0.4':'')+'"></div>'+
+        '<span class="color-tag-name">'+norm+' <small style="color:var(--text3)">'+(isRemoved?'(sem cor)':'(padrão)')+'</small></span>'+
+        (isRemoved
+          ? '<div class="remove-cor-btn" style="background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-size:14px;" title="Restaurar cor">↺</div>'
+          : '<input class="color-tag-edit" type="color" value="'+displayColor+'"/>'+
+            '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>'
+        );
+      if(isRemoved){
+        (function(n){ div.querySelector('.remove-cor-btn').addEventListener('click',function(){ restoreColor(n); }); })(norm);
+      } else {
+        (function(n, editInput){
+          editInput.addEventListener('change',function(e){ editColor(n,e.target.value); });
+          div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(n); });
+        })(norm, div.querySelector('input[type=color]'));
+      }
       box.appendChild(div);
     });
   }
@@ -574,6 +614,7 @@
       var split=splitAmanhaDepois(json.amanha||[]);
       data.amanha=split.amanha; data.depois=split.depois;
       noFem=loadNoFem(); favTimes=loadFavs(); leagueColors=loadColors();
+      removedColors=loadRemovedColors();
       allLeaguesSeen=loadSeenLeagues();
       accumulateLeagues(data.hoje); accumulateLeagues(data.amanha); accumulateLeagues(data.depois);
       buildActive();
