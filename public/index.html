@@ -20,6 +20,7 @@
       --radius: 8px; --radius-lg: 12px;
       --pink: #e91e8c; --pink-light: #fce4f3;
       --red: #e53935;
+      --tv-color: #0F6E56;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -27,6 +28,7 @@
         --border: rgba(255,255,255,0.10); --border2: rgba(255,255,255,0.18);
         --text: #f0efe8; --text2: #b4b2a9; --text3: #888780;
         --green-light: #0a2e22; --green-text: #5DCAA5; --pink-light: #3a0a25;
+        --tv-color: #4ecba0;
       }
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -81,8 +83,8 @@
     .color-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
     .color-tag-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
     .color-tag-edit { width: 24px; height: 24px; border: 1px solid var(--border2); border-radius: 4px; cursor: pointer; padding: 1px; background: none; flex-shrink: 0; }
-    .remove-cor-btn { width: 22px; height: 22px; border: 2px solid var(--border2); border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text3); font-size: 11px; font-weight: 700; flex-shrink: 0; transition: all 0.12s; }
-    .remove-cor-btn:hover { border-color: var(--red); color: var(--red); }
+    .remove-cor-btn { width: 22px; height: 22px; border: 2px solid var(--border2); border-radius: 4px; background: white; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text3); font-size: 11px; font-weight: 700; flex-shrink: 0; transition: all 0.12s; user-select: none; }
+    .remove-cor-btn:hover { border-color: var(--red); color: var(--red); background: #fff5f5; }
 
     .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300; align-items: flex-end; justify-content: center; }
     .popup-overlay.open { display: flex; }
@@ -136,7 +138,7 @@
     .gm { flex: 1; min-width: 0; }
     .gn-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .gn { font-size: 15px; font-weight: 500; color: var(--text); }
-    .gtv { font-size: 13px; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
+    .gtv { font-size: 12px; color: var(--tv-color); font-weight: 500; white-space: nowrap; flex-shrink: 0; }
     .gl { font-size: 11px; color: var(--text3); margin-top: 3px; }
     .gl.fem { color: var(--pink); }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
@@ -260,15 +262,15 @@
   var noFem=false, favTimes=[], leagueColors={}, allLeaguesSeen={};
 
   var DEFAULT_COLORS_EXACT=[
-    {names:['uefa champions league','champions league'], color:'#0d2b6e'},
+    {names:['uefa champions league','champions league'], color:'#1a237e'},
     {names:['conmebol libertadores','libertadores'], color:'#1565c0'},
-    {names:['conmebol sul-americana','sul-americana','sulamericana'], color:'#1565c0'},
+    {names:['conmebol sul-americana','sul-americana','sulamericana'], color:'#0288d1'},
     {names:['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'], color:'#009c3b'},
     {names:['brasileirão série b','brasileirao serie b'], color:'#f9a825'},
     {names:['premier league'], color:'#38003c'},
     {names:['la liga','laliga'], color:'#ee1d23'},
-    {names:['bundesliga'], color:'#e65100'},
-    {names:['serie a'], color:'#1976d2'},
+    {names:['bundesliga'], color:'#ff8f00'},
+    {names:['serie a'], color:'#0288d1'},
   ];
 
   function getDefaultColor(name){
@@ -334,6 +336,15 @@
     }catch(e){}
   }
 
+  function removeColor(l){
+    var nm=normalizeLeague(l);
+    delete leagueColors[nm];
+    delete leagueColors[l];
+    savePref();
+    renderColorSelect();
+    render();
+  }
+
   function closeBanner(){ var b=document.getElementById('banner'); if(b){b.style.display='none'; ls('banner_closed','true');} }
   function toggleAcc(){ var body=document.getElementById('accBody'),arrow=document.getElementById('accArrow'),isOpen=body.classList.contains('open'); body.className='acc-body'+(isOpen?'':' open'); arrow.className='acc-arrow'+(isOpen?'':' open'); }
   function openConfig(){ document.getElementById('overlay').classList.add('open'); document.getElementById('configPanel').classList.add('open'); renderColorSelect(); }
@@ -345,7 +356,6 @@
     var actions=document.getElementById('popupActions');
     actions.innerHTML='';
 
-    // times favoritos
     extractTeams(g.teams).forEach(function(team){
       if(!team) return;
       var isFav=favTimes.some(function(f){return f.toLowerCase()===team.toLowerCase();});
@@ -361,10 +371,8 @@
       actions.appendChild(btn);
     });
 
-    // cor do campeonato
     var norm=normalizeLeague(g.league||'');
     var currentColor=getColor(g.league||'')||'#1D9E75';
-    var hasCustom=!!(leagueColors[norm]||leagueColors[g.league||'']);
     var colorDiv=document.createElement('div');
     colorDiv.className='popup-btn';
     colorDiv.innerHTML=
@@ -373,17 +381,28 @@
         '<span>Cor de <strong>'+norm+'</strong></span>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;">'+
-        '<div class="remove-cor-btn" id="popupRemoveCor" title="Remover cor">&#10005;</div>'+
+        '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>'+
         '<input type="color" value="'+currentColor+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/>'+
       '</div>';
-    colorDiv.querySelector('input').onchange=function(e){ leagueColors[norm]=e.target.value; savePref(); render(); };
-    colorDiv.querySelector('#popupRemoveCor').onclick=function(e){
-      e.stopPropagation();
-      delete leagueColors[norm]; delete leagueColors[g.league||''];
-      savePref(); render(); closePopup();
-    };
-    actions.appendChild(colorDiv);
 
+    var removeBtn=colorDiv.querySelector('.remove-cor-btn');
+    var colorInput=colorDiv.querySelector('input[type=color]');
+    var capturedNorm=norm;
+    var capturedLeague=g.league||'';
+
+    removeBtn.addEventListener('click',function(e){
+      e.stopPropagation();
+      delete leagueColors[capturedNorm];
+      delete leagueColors[capturedLeague];
+      savePref(); render(); closePopup();
+    });
+
+    colorInput.addEventListener('change',function(e){
+      leagueColors[capturedNorm]=e.target.value;
+      savePref(); render();
+    });
+
+    actions.appendChild(colorDiv);
     document.getElementById('popupOverlay').classList.add('open');
   }
 
@@ -410,30 +429,38 @@
     sel.onchange=function(){ document.getElementById('colorPick').value=getColor(sel.value)||'#1D9E75'; };
     renderColorTags();
   }
-  function addColor(){ var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick'); if(!sel.value) return; leagueColors[normalizeLeague(sel.value)]=pick.value; savePref(); renderColorSelect(); render(); }
-  function editColor(l,val){ leagueColors[normalizeLeague(l)]=val; savePref(); render(); }
-  function removeColor(l){
-    var nm=normalizeLeague(l);
-    delete leagueColors[nm]; delete leagueColors[l];
+
+  function addColor(){
+    var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick');
+    if(!sel.value) return;
+    leagueColors[normalizeLeague(sel.value)]=pick.value;
     savePref(); renderColorSelect(); render();
   }
 
+  function editColor(l,val){ leagueColors[normalizeLeague(l)]=val; savePref(); render(); }
+
   function renderColorTags(){
-    var box=document.getElementById('colorTags'); box.innerHTML='';
+    var box=document.getElementById('colorTags');
+    box.innerHTML='';
     var shown={};
-    // personalizados
+
     Object.keys(leagueColors).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(l){
       shown[l]=true;
-      var cor=leagueColors[l], safe=l.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var cor=leagueColors[l];
+      var safe=l.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       var div=document.createElement('div'); div.className='color-tag';
       div.innerHTML=
         '<div class="color-dot" style="background:'+cor+'"></div>'+
         '<span class="color-tag-name">'+l+'</span>'+
         '<input class="color-tag-edit" type="color" value="'+cor+'" onchange="editColor(\''+safe+'\',this.value)"/>'+
-        '<div class="remove-cor-btn" onclick="removeColor(\''+safe+'\')" title="Remover cor">&#10005;</div>';
+        '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>';
+      var capturedL=l;
+      div.querySelector('.remove-cor-btn').addEventListener('click',function(){
+        removeColor(capturedL);
+      });
       box.appendChild(div);
     });
-    // padrões
+
     Object.keys(allLeaguesSeen).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(norm){
       if(shown[norm]) return;
       var dc=getDefaultColor(norm); if(!dc) return;
@@ -443,7 +470,11 @@
         '<div class="color-dot" style="background:'+dc+'"></div>'+
         '<span class="color-tag-name">'+norm+' <small style="color:var(--text3)">(padrão)</small></span>'+
         '<input class="color-tag-edit" type="color" value="'+dc+'" onchange="editColor(\''+safe+'\',this.value)"/>'+
-        '<div class="remove-cor-btn" onclick="removeColor(\''+safe+'\')" title="Remover cor">&#10005;</div>';
+        '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>';
+      var capturedNorm=norm;
+      div.querySelector('.remove-cor-btn').addEventListener('click',function(){
+        removeColor(capturedNorm);
+      });
       box.appendChild(div);
     });
   }
