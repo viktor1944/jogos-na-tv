@@ -47,7 +47,6 @@
     .icon-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
     .spin { display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     .tabs-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
     .tab { padding: 8px 14px; font-size: 13px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
@@ -56,7 +55,6 @@
     @keyframes pulse { 0%,100%{box-shadow:0 2px 10px rgba(255,107,0,0.35);} 50%{box-shadow:0 2px 18px rgba(255,107,0,0.6);} }
     .banner-text { font-size: 12px; font-weight: 700; color: white; white-space: nowrap; }
     .banner-close { background: rgba(255,255,255,0.3); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 2px; line-height: 1; }
-
     .config-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.3); }
     .config-overlay.open { display: block; }
     .config-dropdown { position: fixed; top: 0; right: -100%; width: min(360px,92vw); height: 100vh; background: var(--surface); z-index: 201; transition: right 0.25s cubic-bezier(.4,0,.2,1); overflow-y: auto; box-shadow: -4px 0 24px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
@@ -85,7 +83,6 @@
     .color-tag-edit { width: 24px; height: 24px; border: 1px solid var(--border2); border-radius: 4px; cursor: pointer; padding: 1px; background: none; flex-shrink: 0; }
     .remove-cor-btn { width: 22px; height: 22px; border: 2px solid var(--border2); border-radius: 4px; background: white; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text3); font-size: 11px; font-weight: 700; flex-shrink: 0; transition: all 0.12s; user-select: none; }
     .remove-cor-btn:hover { border-color: var(--red); color: var(--red); background: #fff5f5; }
-
     .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300; align-items: flex-end; justify-content: center; }
     .popup-overlay.open { display: flex; }
     .popup-box { background: var(--surface); border-radius: 16px 16px 0 0; padding: 20px 16px; width: 100%; max-width: 480px; animation: slideUp 0.2s ease; }
@@ -98,7 +95,6 @@
     .popup-btn-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
     .popup-cancel { margin-top: 8px; width: 100%; padding: 12px; border: none; background: none; color: var(--text3); font-size: 14px; cursor: pointer; border-radius: var(--radius); }
     .popup-cancel:hover { background: var(--surface2); }
-
     .acc-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1.25rem; overflow: hidden; }
     .acc-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; user-select: none; transition: background 0.12s; }
     .acc-header:hover { background: rgba(0,0,0,0.03); }
@@ -123,7 +119,6 @@
     .cb-row.nofem.checked .cb-box { background: var(--red); border-color: var(--red); }
     .cb-row span { font-size: 13px; color: var(--text2); }
     .cb-row.nofem span { color: var(--red); font-weight: 700; }
-
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .glist { display: flex; flex-direction: column; gap: 5px; }
     .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
@@ -260,12 +255,12 @@
   var data={hoje:[],amanha:[],depois:[]};
   var tab='hoje', active=new Set(), allSeenLeagues=new Set();
   var noFem=false, favTimes=[], leagueColors={}, allLeaguesSeen={};
-  // cores removidas pelo usuario (para suprimir padrao)
   var removedColors={};
 
   var DEFAULT_COLORS_EXACT=[
-    {names:['uefa champions league','champions league'], color:'#1565c0'},
-    {names:['conmebol libertadores','libertadores'], color:'#6a1b9a'},
+    {names:['copa do mundo','fifa world cup'], color:'#f9c000'},
+    {names:['uefa champions league','champions league'], color:'#6a1b9a'},
+    {names:['conmebol libertadores','libertadores'], color:'#00b0ff'},
     {names:['conmebol sul-americana','sul-americana','sulamericana'], color:'#00838f'},
     {names:['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'], color:'#009c3b'},
     {names:['brasileirão série b','brasileirao serie b'], color:'#f9a825'},
@@ -277,11 +272,7 @@
     {names:['ligue 1'], color:'#283593'},
   ];
 
-  function getDefaultColor(name){
-    if(!name) return null;
-    var norm=name.toLowerCase().replace(/\s*\(.*?\)/g,'').trim();
-    // verifica se foi removida pelo usuario
-    if(removedColors[norm]) return null;
+  function getDefaultColorRaw(norm){
     for(var i=0;i<DEFAULT_COLORS_EXACT.length;i++){
       var e=DEFAULT_COLORS_EXACT[i];
       for(var j=0;j<e.names.length;j++) if(norm===e.names[j]) return e.color;
@@ -293,13 +284,11 @@
 
   function getColor(n){
     if(!n) return null;
-    var nm=normalizeLeague(n);
-    // cor personalizada tem prioridade
+    var nm=normalizeLeague(n).toLowerCase();
     if(leagueColors[nm]) return leagueColors[nm];
     if(leagueColors[n]) return leagueColors[n];
-    // verifica se removida
     if(removedColors[nm]) return null;
-    return getDefaultColor(nm)||getDefaultColor(n);
+    return getDefaultColorRaw(nm);
   }
 
   var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sulamericana','sul-americana','premier league','la liga','laliga','bundesliga','ligue 1'];
@@ -322,7 +311,11 @@
   function loadBannerClosed(){ return ls('banner_closed')==='true'; }
 
   function accumulateLeagues(games){
-    games.forEach(function(g){ if(!g.league) return; allLeaguesSeen[normalizeLeague(g.league)]=normalizeLeague(g.league); });
+    games.forEach(function(g){
+      if(!g.league) return;
+      var nm=normalizeLeague(g.league).toLowerCase();
+      allLeaguesSeen[nm]=normalizeLeague(g.league);
+    });
     saveSeenLeagues();
   }
 
@@ -348,20 +341,25 @@
     }catch(e){}
   }
 
-  function removeColor(l){
-    var nm=normalizeLeague(l);
-    // remove personalizada
+  // Remove cor de um campeonato — se era padrão, marca como removida; se era customizada, apaga
+  function removeColor(nm){
+    nm=nm.toLowerCase();
     delete leagueColors[nm];
-    delete leagueColors[l];
-    // marca padrao como removida
-    removedColors[nm]=true;
+    var hasDefault=getDefaultColorRaw(nm);
+    if(hasDefault){
+      // tem cor padrão: marca como removida (fica "sem cor" mas permanece na lista)
+      removedColors[nm]=true;
+    }
+    // se não tem padrão: some da lista completamente (já não estava em allLeaguesSeen por cor)
     savePref();
     renderColorSelect();
     render();
   }
 
-  function restoreColor(l){
-    var nm=normalizeLeague(l);
+  // Remove completamente da lista de cores (para itens "sem cor")
+  function removeFromColorList(nm){
+    nm=nm.toLowerCase();
+    delete leagueColors[nm];
     delete removedColors[nm];
     savePref();
     renderColorSelect();
@@ -392,38 +390,33 @@
           else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(t.toLowerCase())===-1) favTimes.push(t);
           savePref(); renderFavTags(); render(); closePopup();
         });
-      })(team, isFav);
+      })(team,isFav);
       actions.appendChild(btn);
     });
 
-    var norm=normalizeLeague(g.league||'');
+    var norm=normalizeLeague(g.league||'').toLowerCase();
     var currentColor=getColor(g.league||'')||'#1D9E75';
     var colorDiv=document.createElement('div');
     colorDiv.className='popup-btn';
     colorDiv.innerHTML=
       '<div style="display:flex;align-items:center;gap:10px;">'+
         '<span class="popup-btn-icon">🎨</span>'+
-        '<span>Cor de <strong>'+norm+'</strong></span>'+
+        '<span>Cor de <strong>'+normalizeLeague(g.league||'')+'</strong></span>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;">'+
         '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>'+
         '<input type="color" value="'+currentColor+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/>'+
       '</div>';
-
-    (function(nm, league){
+    (function(nm){
       colorDiv.querySelector('.remove-cor-btn').addEventListener('click',function(e){
-        e.stopPropagation();
-        removeColor(nm);
-        closePopup();
+        e.stopPropagation(); removeColor(nm); closePopup();
       });
       colorDiv.querySelector('input[type=color]').addEventListener('change',function(e){
         leagueColors[nm]=e.target.value;
-        // se estava na lista de removidas, remove dessa lista
         delete removedColors[nm];
         savePref(); render();
       });
-    })(norm, g.league||'');
-
+    })(norm);
     actions.appendChild(colorDiv);
     document.getElementById('popupOverlay').classList.add('open');
   }
@@ -446,7 +439,7 @@
     var sel=document.getElementById('colorSelect');
     sel.innerHTML='<option value="">Campeonato...</option>';
     Object.keys(allLeaguesSeen).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(norm){
-      var o=document.createElement('option'); o.value=norm; o.textContent=norm; sel.appendChild(o);
+      var o=document.createElement('option'); o.value=norm; o.textContent=allLeaguesSeen[norm]||norm; sel.appendChild(o);
     });
     sel.onchange=function(){ document.getElementById('colorPick').value=getColor(sel.value)||'#1D9E75'; };
     renderColorTags();
@@ -455,14 +448,14 @@
   function addColor(){
     var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick');
     if(!sel.value) return;
-    var nm=normalizeLeague(sel.value);
+    var nm=sel.value.toLowerCase();
     leagueColors[nm]=pick.value;
     delete removedColors[nm];
     savePref(); renderColorSelect(); render();
   }
 
-  function editColor(l,val){
-    var nm=normalizeLeague(l);
+  function editColor(nm,val){
+    nm=nm.toLowerCase();
     leagueColors[nm]=val;
     delete removedColors[nm];
     savePref(); render();
@@ -473,48 +466,35 @@
     box.innerHTML='';
     var shown={};
 
-    // personalizados
-    Object.keys(leagueColors).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(l){
-      shown[l]=true;
-      var cor=leagueColors[l];
+    // 1. personalizados
+    Object.keys(leagueColors).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(nm){
+      shown[nm]=true;
+      var cor=leagueColors[nm];
+      var label=allLeaguesSeen[nm]||nm;
       var div=document.createElement('div'); div.className='color-tag';
-      div.innerHTML=
-        '<div class="color-dot" style="background:'+cor+'"></div>'+
-        '<span class="color-tag-name">'+l+'</span>'+
-        '<input class="color-tag-edit" type="color" value="'+cor+'"/>'+
-        '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>';
-      (function(capturedL, capturedCor, editInput){
-        editInput.addEventListener('change',function(e){ editColor(capturedL,e.target.value); });
-        div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(capturedL); });
-      })(l, cor, div.querySelector('input[type=color]'));
+      div.innerHTML='<div class="color-dot" style="background:'+cor+'"></div><span class="color-tag-name">'+label+'</span><input class="color-tag-edit" type="color" value="'+cor+'"/><div class="remove-cor-btn" title="Remover cor">&#10005;</div>';
+      (function(n){ div.querySelector('input').addEventListener('change',function(e){ editColor(n,e.target.value); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(n); }); })(nm);
       box.appendChild(div);
     });
 
-    // padrões presentes
-    Object.keys(allLeaguesSeen).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(norm){
-      if(shown[norm]) return;
-      var isRemoved=removedColors[norm];
-      var dc=getDefaultColor(norm);
-      // mostra se tem cor padrão OU se foi removida (pra permitir restaurar)
-      if(!dc && !isRemoved) return;
-      var displayColor=isRemoved?'#cccccc':(dc||'#cccccc');
+    // 2. removidos (sem cor) — aparece com X pra sumir da lista
+    Object.keys(removedColors).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(nm){
+      if(shown[nm]) return;
+      var label=allLeaguesSeen[nm]||nm;
       var div=document.createElement('div'); div.className='color-tag';
-      div.innerHTML=
-        '<div class="color-dot" style="background:'+displayColor+';'+(isRemoved?'opacity:0.4':'')+'"></div>'+
-        '<span class="color-tag-name">'+norm+' <small style="color:var(--text3)">'+(isRemoved?'(sem cor)':'(padrão)')+'</small></span>'+
-        (isRemoved
-          ? '<div class="remove-cor-btn" style="background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-size:14px;" title="Restaurar cor">↺</div>'
-          : '<input class="color-tag-edit" type="color" value="'+displayColor+'"/>'+
-            '<div class="remove-cor-btn" title="Remover cor">&#10005;</div>'
-        );
-      if(isRemoved){
-        (function(n){ div.querySelector('.remove-cor-btn').addEventListener('click',function(){ restoreColor(n); }); })(norm);
-      } else {
-        (function(n, editInput){
-          editInput.addEventListener('change',function(e){ editColor(n,e.target.value); });
-          div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(n); });
-        })(norm, div.querySelector('input[type=color]'));
-      }
+      div.innerHTML='<div class="color-dot" style="background:#ccc;opacity:0.4"></div><span class="color-tag-name" style="opacity:0.5">'+label+' <small>(sem cor)</small></span><div class="remove-cor-btn" title="Remover da lista">&#10005;</div>';
+      (function(n){ div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeFromColorList(n); }); })(nm);
+      box.appendChild(div);
+    });
+
+    // 3. padrões
+    Object.keys(allLeaguesSeen).sort(function(a,b){return leaguePriority(a)-leaguePriority(b)||a.localeCompare(b);}).forEach(function(nm){
+      if(shown[nm]||removedColors[nm]) return;
+      var dc=getDefaultColorRaw(nm); if(!dc) return;
+      var label=allLeaguesSeen[nm]||nm;
+      var div=document.createElement('div'); div.className='color-tag';
+      div.innerHTML='<div class="color-dot" style="background:'+dc+'"></div><span class="color-tag-name">'+label+' <small style="color:var(--text3)">(padrão)</small></span><input class="color-tag-edit" type="color" value="'+dc+'"/><div class="remove-cor-btn" title="Remover cor">&#10005;</div>';
+      (function(n){ div.querySelector('input').addEventListener('change',function(e){ editColor(n,e.target.value); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(n); }); })(nm);
       box.appendChild(div);
     });
   }
@@ -525,12 +505,12 @@
     allSeenLeagues=new Set(Object.keys(allLeaguesSeen));
     var off=loadSaved(); active=new Set();
     allSeenLeagues.forEach(function(l){ if(off.indexOf(l)===-1) active.add(l); });
-    if(noFem) allSeenLeagues.forEach(function(l){ if(isFem(l)) active.delete(l); });
+    if(noFem) allSeenLeagues.forEach(function(l){ if(isFem(allLeaguesSeen[l]||l)) active.delete(l); });
   }
 
-  function onAll(){ allSeenLeagues.forEach(function(l){ if(!noFem||!isFem(l)) active.add(l); }); savePref(); render(); }
+  function onAll(){ allSeenLeagues.forEach(function(l){ if(!noFem||!isFem(allLeaguesSeen[l]||l)) active.add(l); }); savePref(); render(); }
   function onNone(){ active.clear(); savePref(); render(); }
-  function onNoFem(){ noFem=!noFem; if(noFem) allSeenLeagues.forEach(function(l){ if(isFem(l)) active.delete(l); }); savePref(); render(); }
+  function onNoFem(){ noFem=!noFem; if(noFem) allSeenLeagues.forEach(function(l){ if(isFem(allLeaguesSeen[l]||l)) active.delete(l); }); savePref(); render(); }
   function fmtLeague(n){ return (n||'').replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'); }
 
   function getTabGames(){
@@ -538,11 +518,14 @@
     if(tab==='hoje'){ var c=nowMin()-240; games=games.filter(function(g){return timeToMin(g.time)>=c;}); }
     return games;
   }
-  function leagueHasGameToday(norm){ return (data[tab]||[]).some(function(g){return normalizeLeague(g.league)===norm;}); }
+
+  function leagueHasGameToday(nm){
+    return (data[tab]||[]).some(function(g){ return normalizeLeague(g.league).toLowerCase()===nm; });
+  }
 
   function render(){
     var allArr=Array.from(allSeenLeagues);
-    var selArr=allArr.filter(function(l){return !noFem||!isFem(l);});
+    var selArr=allArr.filter(function(l){return !noFem||!isFem(allLeaguesSeen[l]||l);});
     var allOn=selArr.length>0&&selArr.every(function(l){return active.has(l);});
     var noneOn=active.size===0&&allArr.length>0;
     document.getElementById('rowAll').className='cb-row'+(allOn?' checked':''); document.getElementById('boxAll').textContent=allOn?'✓':'';
@@ -555,20 +538,25 @@
     else{
       wrap.style.display='block';
       document.getElementById('lcnt').textContent=active.size+'/'+allArr.length+' selecionados';
-      allArr.slice().sort(function(a,b){ var fa=isFem(a),fb=isFem(b); if(fa&&!fb) return 1; if(!fa&&fb) return -1; var pa=leaguePriority(a),pb=leaguePriority(b); if(pa!==pb) return pa-pb; return a.localeCompare(b); }).forEach(function(l){
-        var fem=isFem(l),cor=getColor(l),isOn=active.has(l),hasToday=leagueHasGameToday(l);
+      allArr.slice().sort(function(a,b){
+        var la=allLeaguesSeen[a]||a, lb=allLeaguesSeen[b]||b;
+        var fa=isFem(la),fb=isFem(lb); if(fa&&!fb) return 1; if(!fa&&fb) return -1;
+        var pa=leaguePriority(a),pb=leaguePriority(b); if(pa!==pb) return pa-pb; return a.localeCompare(b);
+      }).forEach(function(l){
+        var label=allLeaguesSeen[l]||l;
+        var fem=isFem(label), cor=getColor(label), isOn=active.has(l), hasToday=leagueHasGameToday(l);
         var c=document.createElement('div');
         c.className='chip'+(isOn?' on':'')+(fem?' feminino':'')+(hasToday?'':' noday');
         if(cor&&isOn){c.style.background=hexToRgba(cor,0.15);c.style.borderColor=cor;c.style.color=cor;}
-        c.innerHTML='<span class="dot"'+(cor&&isOn?' style="background:'+cor+'"':'')+'>​</span>'+(fem?l.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):l);
+        c.innerHTML='<span class="dot"'+(cor&&isOn?' style="background:'+cor+'"':'')+'>​</span>'+(fem?label.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):label);
         c.onclick=function(){active.has(l)?active.delete(l):active.add(l);savePref();render();};
         lbox.appendChild(c);
       });
     }
 
     var games=getTabGames().filter(function(g){
-      var norm=normalizeLeague(g.league||'');
-      return active.has(norm)||active.has(g.league||'');
+      var nm=normalizeLeague(g.league||'').toLowerCase();
+      return active.has(nm)||active.has(g.league||'');
     }).sort(function(a,b){
       var fa=isFavGame(a.teams,a.league),fb=isFavGame(b.teams,b.league);
       if(fa&&!fb) return -1; if(!fa&&fb) return 1;
