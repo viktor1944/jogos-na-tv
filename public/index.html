@@ -120,6 +120,11 @@
     .cb-row.nofem span { color: var(--red); font-weight: 700; }
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .glist { display: flex; flex-direction: column; gap: 5px; }
+
+    /* separador "meu time" vs resto */
+    .fav-section-label { font-size: 11px; font-weight: 600; color: var(--red); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0 4px; opacity: 0.8; }
+    .divider { height: 1px; background: var(--border); margin: 8px 0; }
+
     .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
     .gc:active { filter: brightness(0.95); }
     .gc.favorito { border-width: 2.5px; border-color: var(--red); box-shadow: 0 4px 20px rgba(229,57,53,0.25); background: linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%); position: relative; overflow: hidden; }
@@ -270,43 +275,27 @@
     {names:['ligue 1'], color:'#283593'},
   ];
 
-  // SEMPRE usa lowercase como chave — evita duplicatas
   function norm(n){ return (n||'').replace(/\s*\(.*?\)/g,'').trim().toLowerCase(); }
-  // Label de exibição (capitalizado do jeito que veio do site)
-  function label(key){ return seen[key]||key; }
-
-  function getDefaultColor(key){
-    for(var i=0;i<DEFAULT_COLORS.length;i++){
-      var e=DEFAULT_COLORS[i];
-      for(var j=0;j<e.names.length;j++) if(key===e.names[j]) return e.color;
-    }
-    return null;
-  }
-
-  function getColor(n){
-    var k=norm(n);
-    if(leagueColors[k]) return leagueColors[k];
-    if(removedColors[k]) return null;
-    return getDefaultColor(k);
-  }
+  function getDefaultColor(k){ for(var i=0;i<DEFAULT_COLORS.length;i++){var e=DEFAULT_COLORS[i];for(var j=0;j<e.names.length;j++) if(k===e.names[j]) return e.color;} return null; }
+  function getColor(n){ var k=norm(n); if(leagueColors[k]) return leagueColors[k]; if(removedColors[k]) return null; return getDefaultColor(k); }
 
   var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sulamericana','sul-americana','premier league','la liga','laliga','bundesliga','ligue 1'];
   function pri(k){ for(var i=0;i<PRIORITY.length;i++) if(k.indexOf(PRIORITY[i])!==-1) return i; return 999; }
   function isFem(n){ var k=(n||'').toLowerCase(); return k.indexOf('feminino')!==-1||k.indexOf('feminina')!==-1||k.indexOf('nwsl')!==-1; }
-  function isFavGame(teams,league){ if(!favTimes.length) return false; if(noFem&&isFem(league)) return false; var t=(teams||'').toLowerCase(); return favTimes.some(function(f){ return t.indexOf(f.toLowerCase())!==-1; }); }
+  function isFavGame(ts,league){ if(!favTimes.length) return false; if(noFem&&isFem(league)) return false; var t=(ts||'').toLowerCase(); return favTimes.some(function(f){ return t.indexOf(f.toLowerCase())!==-1; }); }
   function rgba(hex,a){ var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
   function toMin(t){ var p=t.replace('h',':').split(':'); return parseInt(p[0])*60+parseInt(p[1]||0); }
   function nowMin(){ var n=new Date(); return n.getHours()*60+n.getMinutes(); }
-  function teams(t){ return (t||'').split(/\s+x\s+/i).map(function(s){ return s.replace(/\s*(feminino|feminina)\s*/gi,'').trim(); }).filter(Boolean); }
+  function getTeams(t){ return (t||'').split(/\s+x\s+/i).map(function(s){ return s.replace(/\s*(feminino|feminina)\s*/gi,'').trim(); }).filter(Boolean); }
 
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){} }
-  function loadSeen(){ try{ var s=JSON.parse(ls('seen2')||'{}'); var out={}; Object.keys(s).forEach(function(k){ out[k.toLowerCase()]=s[k]; }); return out; }catch(e){return{};} }
+  function loadSeen(){ try{ var s=JSON.parse(ls('seen2')||'{}'); var o={}; Object.keys(s).forEach(function(k){ o[k.toLowerCase()]=s[k]; }); return o; }catch(e){return{};} }
   function saveSeen(){ try{ls('seen2',JSON.stringify(seen));}catch(e){} }
   function loadSaved(){ try{return JSON.parse(ls('off2')||'[]');}catch(e){return[];} }
   function loadNoFem(){ return ls('nofem')==='true'; }
   function loadFavs(){ try{return JSON.parse(ls('favs')||'[]');}catch(e){return[];} }
-  function loadColors(){ try{ var c=JSON.parse(ls('colors2')||'{}'); var out={}; Object.keys(c).forEach(function(k){ out[k.toLowerCase()]=c[k]; }); return out; }catch(e){return{};} }
-  function loadRemoved(){ try{ var r=JSON.parse(ls('removed2')||'{}'); var out={}; Object.keys(r).forEach(function(k){ out[k.toLowerCase()]=true; }); return out; }catch(e){return{};} }
+  function loadColors(){ try{ var c=JSON.parse(ls('colors2')||'{}'); var o={}; Object.keys(c).forEach(function(k){ o[k.toLowerCase()]=c[k]; }); return o; }catch(e){return{};} }
+  function loadRemoved(){ try{ var r=JSON.parse(ls('removed2')||'{}'); var o={}; Object.keys(r).forEach(function(k){ o[k.toLowerCase()]=true; }); return o; }catch(e){return{};} }
   function loadBannerClosed(){ return ls('banner_closed')==='true'; }
 
   function savePref(){
@@ -323,9 +312,8 @@
     games.forEach(function(g){
       if(!g.league) return;
       var k=norm(g.league);
-      // guarda label de exibição — não sobrescreve com versão menor
-      if(!seen[k]||seen[k].length<g.league.replace(/\s*\(.*?\)/g,'').trim().length)
-        seen[k]=g.league.replace(/\s*\(.*?\)/g,'').trim();
+      var lbl=g.league.replace(/\s*\(.*?\)/g,'').trim();
+      if(!seen[k]||lbl.length>seen[k].length) seen[k]=lbl;
     });
     saveSeen();
   }
@@ -337,22 +325,9 @@
     return {amanha:amanha,depois:depois};
   }
 
+  // UM clique: se tem padrão → remove completamente (não passa por "sem cor")
+  //            se não tem padrão → remove completamente
   function removeColor(k){
-    k=k.toLowerCase();
-    delete leagueColors[k];
-    if(getDefaultColor(k)){
-      removedColors[k]=true; // tem padrão → fica "sem cor"
-    } else {
-      // sem padrão → remove completamente
-      delete seen[k];
-      delete removedColors[k];
-      allSeenLeagues.delete(k);
-      saveSeen();
-    }
-    savePref(); renderColorSelect(); render();
-  }
-
-  function removeFromList(k){
     k=k.toLowerCase();
     delete leagueColors[k];
     delete removedColors[k];
@@ -370,7 +345,7 @@
     document.getElementById('popupMatch').textContent=g.teams;
     document.getElementById('popupLeague').textContent=g.league||'';
     var actions=document.getElementById('popupActions'); actions.innerHTML='';
-    teams(g.teams).forEach(function(t){
+    getTeams(g.teams).forEach(function(t){
       if(!t) return;
       var isFav=favTimes.some(function(f){return f.toLowerCase()===t.toLowerCase();});
       var btn=document.createElement('div'); btn.className='popup-btn'; btn.style.justifyContent='flex-start';
@@ -418,7 +393,7 @@
   function renderColorTags(){
     var box=document.getElementById('colorTags'); box.innerHTML='';
     var shown={};
-    // 1. personalizados
+    // personalizados
     Object.keys(leagueColors).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
       shown[k]=true; var cor=leagueColors[k];
       var div=document.createElement('div'); div.className='color-tag';
@@ -426,17 +401,9 @@
       (function(key){ div.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(key); }); })(k);
       box.appendChild(div);
     });
-    // 2. "sem cor" — X remove completamente
-    Object.keys(removedColors).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
-      if(shown[k]) return;
-      var div=document.createElement('div'); div.className='color-tag';
-      div.innerHTML='<div class="color-dot" style="background:#ccc;opacity:0.35"></div><span class="color-tag-name" style="opacity:0.5">'+(seen[k]||k)+' <small>(sem cor)</small></span><div class="remove-cor-btn">&#10005;</div>';
-      (function(key){ div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeFromList(key); }); })(k);
-      box.appendChild(div);
-    });
-    // 3. padrões
+    // padrões
     Array.from(allSeenLeagues).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
-      if(shown[k]||removedColors[k]) return;
+      if(shown[k]) return;
       var dc=getDefaultColor(k); if(!dc) return;
       var div=document.createElement('div'); div.className='color-tag';
       div.innerHTML='<div class="color-dot" style="background:'+dc+'"></div><span class="color-tag-name">'+(seen[k]||k)+' <small style="color:var(--text3)">(padrão)</small></span><input class="color-tag-edit" type="color" value="'+dc+'"/><div class="remove-cor-btn">&#10005;</div>';
@@ -492,20 +459,36 @@
       });
     }
 
-    var games=getTabGames().filter(function(g){ var k=norm(g.league||''); return active.has(k); }).sort(function(a,b){ var fa=isFavGame(a.teams,a.league),fb=isFavGame(b.teams,b.league); if(fa&&!fb) return -1; if(!fa&&fb) return 1; return toMin(a.time)-toMin(b.time); });
-    document.getElementById('stat').textContent=games.length+' jogo'+(games.length!==1?'s':'');
-    if(!games.length){ document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>'; return; }
+    var allGames=getTabGames().filter(function(g){ return active.has(norm(g.league||'')); });
 
-    window.filteredGames=games;
+    // separa favoritos e não favoritos — ambos ordenados por horário
+    var favGames=allGames.filter(function(g){ return isFavGame(g.teams,g.league); }).sort(function(a,b){ return toMin(a.time)-toMin(b.time); });
+    var otherGames=allGames.filter(function(g){ return !isFavGame(g.teams,g.league); }).sort(function(a,b){ return toMin(a.time)-toMin(b.time); });
+
+    document.getElementById('stat').textContent=allGames.length+' jogo'+(allGames.length!==1?'s':'');
+    if(!allGames.length){ document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>'; return; }
+
+    window.filteredGames=favGames.concat(otherGames);
     var h='<div class="glist">';
-    games.forEach(function(g,idx){
-      var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||'');
+
+    function gameHtml(g, idx){
+      var fem=isFem(g.league||''), fav=isFavGame(g.teams,g.league), cor=getColor(g.league||'');
       var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;';
-      h+='<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
+      return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
         '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
         '<div class="gm"><div class="gn-row"><span class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</span>'+(g.tv?'<span class="gtv">· '+g.tv+'</span>':'')+
         '</div><div class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(g.league||'')+'</div></div></div>';
-    });
+    }
+
+    // favoritos primeiro (com label se houver)
+    if(favGames.length>0){
+      h+='<div class="fav-section-label">⭐ Meu time</div>';
+      favGames.forEach(function(g,i){ h+=gameHtml(g,i); });
+      if(otherGames.length>0) h+='<div class="divider"></div>';
+    }
+    // resto por horário
+    otherGames.forEach(function(g,i){ h+=gameHtml(g,favGames.length+i); });
+
     h+='</div>';
     document.getElementById('out').innerHTML=h;
   }
