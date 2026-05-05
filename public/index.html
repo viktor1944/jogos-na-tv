@@ -119,12 +119,9 @@
     .cb-row span { font-size: 13px; color: var(--text2); }
     .cb-row.nofem span { color: var(--red); font-weight: 700; }
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
-    .glist { display: flex; flex-direction: column; gap: 5px; }
-
-    /* separador "meu time" vs resto */
     .fav-section-label { font-size: 11px; font-weight: 600; color: var(--red); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0 4px; opacity: 0.8; }
     .divider { height: 1px; background: var(--border); margin: 8px 0; }
-
+    .glist { display: flex; flex-direction: column; gap: 5px; }
     .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
     .gc:active { filter: brightness(0.95); }
     .gc.favorito { border-width: 2.5px; border-color: var(--red); box-shadow: 0 4px 20px rgba(229,57,53,0.25); background: linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%); position: relative; overflow: hidden; }
@@ -152,7 +149,6 @@
   </style>
 </head>
 <body>
-
 <div class="config-overlay" id="overlay" onclick="closeConfig()"></div>
 <div class="config-dropdown" id="configPanel">
   <div class="config-head">
@@ -312,25 +308,17 @@
     games.forEach(function(g){
       if(!g.league) return;
       var k=norm(g.league);
+      if(removedColors[k]) return; // não readiciona removidos
       var lbl=g.league.replace(/\s*\(.*?\)/g,'').trim();
       if(!seen[k]||lbl.length>seen[k].length) seen[k]=lbl;
     });
     saveSeen();
   }
 
-  function splitAmanhaDepois(games){
-    if(!games.length) return {amanha:[],depois:[]};
-    var amanha=[],depois=[],prev=toMin(games[0].time),virou=false;
-    games.forEach(function(g){ var m=toMin(g.time); if(!virou&&m<prev-120&&prev>600) virou=true; if(m>prev) prev=m; if(virou) depois.push(g); else amanha.push(g); });
-    return {amanha:amanha,depois:depois};
-  }
-
-  // UM clique: se tem padrão → remove completamente (não passa por "sem cor")
-  //            se não tem padrão → remove completamente
   function removeColor(k){
     k=k.toLowerCase();
     delete leagueColors[k];
-    delete removedColors[k];
+    removedColors[k]=true; // impede reaparecer no accumulate
     delete seen[k];
     allSeenLeagues.delete(k);
     saveSeen(); savePref(); renderColorSelect(); render();
@@ -393,7 +381,6 @@
   function renderColorTags(){
     var box=document.getElementById('colorTags'); box.innerHTML='';
     var shown={};
-    // personalizados
     Object.keys(leagueColors).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
       shown[k]=true; var cor=leagueColors[k];
       var div=document.createElement('div'); div.className='color-tag';
@@ -401,7 +388,6 @@
       (function(key){ div.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(key); }); })(k);
       box.appendChild(div);
     });
-    // padrões
     Array.from(allSeenLeagues).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
       if(shown[k]) return;
       var dc=getDefaultColor(k); if(!dc) return;
@@ -460,8 +446,6 @@
     }
 
     var allGames=getTabGames().filter(function(g){ return active.has(norm(g.league||'')); });
-
-    // separa favoritos e não favoritos — ambos ordenados por horário
     var favGames=allGames.filter(function(g){ return isFavGame(g.teams,g.league); }).sort(function(a,b){ return toMin(a.time)-toMin(b.time); });
     var otherGames=allGames.filter(function(g){ return !isFavGame(g.teams,g.league); }).sort(function(a,b){ return toMin(a.time)-toMin(b.time); });
 
@@ -471,8 +455,8 @@
     window.filteredGames=favGames.concat(otherGames);
     var h='<div class="glist">';
 
-    function gameHtml(g, idx){
-      var fem=isFem(g.league||''), fav=isFavGame(g.teams,g.league), cor=getColor(g.league||'');
+    function gameHtml(g,idx){
+      var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||'');
       var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;';
       return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
         '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
@@ -480,15 +464,12 @@
         '</div><div class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(g.league||'')+'</div></div></div>';
     }
 
-    // favoritos primeiro (com label se houver)
     if(favGames.length>0){
       h+='<div class="fav-section-label">⭐ Meu time</div>';
       favGames.forEach(function(g,i){ h+=gameHtml(g,i); });
       if(otherGames.length>0) h+='<div class="divider"></div>';
     }
-    // resto por horário
     otherGames.forEach(function(g,i){ h+=gameHtml(g,favGames.length+i); });
-
     h+='</div>';
     document.getElementById('out').innerHTML=h;
   }
@@ -504,8 +485,8 @@
       var res=await fetch('/api/jogos'); if(!res.ok) throw new Error('Erro '+res.status);
       var json=await res.json();
       data.hoje=json.hoje||[];
-      var split=splitAmanhaDepois(json.amanha||[]);
-      data.amanha=split.amanha; data.depois=split.depois;
+      data.amanha=json.amanha||[];
+      data.depois=json.depois||[];
       noFem=loadNoFem(); favTimes=loadFavs(); leagueColors=loadColors();
       removedColors=loadRemoved(); seen=loadSeen();
       accumulate(data.hoje); accumulate(data.amanha); accumulate(data.depois);
