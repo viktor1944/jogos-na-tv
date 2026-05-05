@@ -14,15 +14,64 @@ module.exports = async function handler(req, res) {
     var h1 = await r1.text();
     var h2 = await r2.text();
 
+    // Data de hoje no formato DD/MM
+    var now = new Date();
+    var todayStr = String(now.getDate()).padStart(2,'0') + '/' + String(now.getMonth()+1).padStart(2,'0');
+    var tomorrowDate = new Date(now); tomorrowDate.setDate(now.getDate()+1);
+    var tomorrowStr = String(tomorrowDate.getDate()).padStart(2,'0') + '/' + String(tomorrowDate.getMonth()+1).padStart(2,'0');
+    var afterDate = new Date(now); afterDate.setDate(now.getDate()+2);
+    var afterStr = String(afterDate.getDate()).padStart(2,'0') + '/' + String(afterDate.getMonth()+1).padStart(2,'0');
+
+    var jogosHoje = extrairComData(h1, todayStr);
+    var rawAmanha = extrairComData(h2, tomorrowStr);
+    var rawDepois = extrairComData(h2, afterStr);
+
+    // fallback: se extrairComData não encontrou nada por data, usa extração simples
+    if(jogosHoje.length === 0) jogosHoje = extrair(h1);
+    if(rawAmanha.length === 0 && rawDepois.length === 0) {
+      var todos = extrair(h2);
+      // divide pelo salto de horário
+      rawAmanha = todos;
+      rawDepois = [];
+    }
+
     res.status(200).json({
-      hoje: extrair(h1),
-      amanha: extrair(h2),
-      updatedAt: new Date().toISOString()
+      hoje: jogosHoje,
+      amanha: rawAmanha,
+      depois: rawDepois,
+      updatedAt: new Date().toISOString(),
+      debug: { todayStr: todayStr, tomorrowStr: tomorrowStr, afterStr: afterStr }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Extrai jogos de uma seção específica de data (DD/MM)
+function extrairComData(html, dateStr) {
+  var jogos = [];
+
+  // Procura pelo padrão de data no HTML: pode aparecer como "05/05" ou "Segunda-feira, 05/05/2026"
+  var datePattern = new RegExp(dateStr.replace('/','\\/'), 'g');
+  var dateIdx = html.search(datePattern);
+  if(dateIdx === -1) return [];
+
+  // Pega o bloco a partir da data encontrada
+  // Procura a próxima data diferente para saber onde termina
+  var nextDatePattern = /\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{2}/g;
+  nextDatePattern.lastIndex = dateIdx + dateStr.length;
+  var nextMatch = nextDatePattern.exec(html);
+  var endIdx = nextMatch ? nextMatch.index : html.length;
+
+  // Se a próxima data encontrada for a mesma, continua
+  while(nextMatch && nextMatch[0].indexOf(dateStr) !== -1) {
+    nextMatch = nextDatePattern.exec(html);
+    endIdx = nextMatch ? nextMatch.index : html.length;
+  }
+
+  var bloco = html.substring(dateIdx, endIdx);
+  return extrair(bloco);
+}
 
 function extrair(html) {
   var jogos = [];
