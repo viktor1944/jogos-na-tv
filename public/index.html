@@ -46,8 +46,6 @@
     .icon-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
     .spin { display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Banner instalar PWA */
     .install-banner { display: none; background: linear-gradient(135deg,#1D9E75,#0F6E56); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 1.25rem; align-items: center; gap: 12px; }
     .install-banner.show { display: flex; }
     .install-banner-text { flex: 1; }
@@ -55,7 +53,6 @@
     .install-banner-text span { font-size: 12px; color: rgba(255,255,255,0.8); }
     .install-btn { padding: 8px 16px; background: white; color: var(--green-dark); border: none; border-radius: var(--radius); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
     .install-dismiss { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; flex-shrink: 0; line-height: 1; }
-
     .tabs-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
     .tab { padding: 8px 14px; font-size: 13px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
@@ -142,13 +139,12 @@
     .fav-badge { display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:white;background:var(--red);border-radius:4px;padding:2px 7px;margin-left:6px;box-shadow:0 1px 4px rgba(229,57,53,0.4); }
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; padding-top: 2px; }
     .gm { flex: 1; min-width: 0; }
-    /* Nome completo numa linha, canal e torneio na segunda */
     .gn { font-size: 15px; font-weight: 500; color: var(--text); white-space: normal; word-break: break-word; line-height: 1.3; margin-bottom: 4px; }
     .gl-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
     .gl { font-size: 11px; color: var(--text3); white-space: nowrap; }
     .gl.fem { color: var(--pink); }
     .gl-sep { font-size: 11px; color: var(--border2); }
-    .gtv { font-size: 11px; color: var(--tv-color); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gtv { font-size: 11px; color: var(--tv-color); font-weight: 500; white-space: nowrap; }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
     .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -220,12 +216,11 @@
     </div>
   </div>
 
-  <!-- Banner instalar PWA -->
   <div class="install-banner" id="installBanner">
     <div style="font-size:28px;">📲</div>
     <div class="install-banner-text">
       <strong>Instalar como app!</strong>
-      <span>Acesse sem digitar o link, direto da tela inicial</span>
+      <span>Acesse direto da tela inicial, sem digitar o link</span>
     </div>
     <button class="install-btn" id="installBtn">Instalar</button>
     <button class="install-dismiss" onclick="dismissInstall()">×</button>
@@ -281,18 +276,14 @@
   var noFem=false, favTimes=[], leagueColors={}, seen={}, removedColors={};
   var deferredInstall=null;
 
-  // PWA Install
   window.addEventListener('beforeinstallprompt',function(e){
-    e.preventDefault();
-    deferredInstall=e;
+    e.preventDefault(); deferredInstall=e;
     if(!ls('install_dismissed')) document.getElementById('installBanner').classList.add('show');
   });
   window.addEventListener('appinstalled',function(){ document.getElementById('installBanner').classList.remove('show'); });
-
   document.getElementById('installBtn').addEventListener('click',function(){
     if(deferredInstall){ deferredInstall.prompt(); deferredInstall.userChoice.then(function(){ deferredInstall=null; document.getElementById('installBanner').classList.remove('show'); }); }
   });
-
   function dismissInstall(){ document.getElementById('installBanner').classList.remove('show'); ls('install_dismissed','1'); }
 
   var DEFAULT_COLORS=[
@@ -300,7 +291,7 @@
     {names:['champions league','uefa champions league'], color:'#6a1b9a'},
     {names:['libertadores','conmebol libertadores'], color:'#00b0ff'},
     {names:['sul-americana','sulamericana','conmebol sul-americana'], color:'#00838f'},
-    {names:['libertadores de futebol de areia'], color:'#00838f'},
+    {names:['libertadores de futebol de areia'], color:'#1565c0'},
     {names:['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'], color:'#009c3b'},
     {names:['brasileirão série b','brasileirao serie b'], color:'#f9a825'},
     {names:['premier league'], color:'#4a148c'},
@@ -498,15 +489,13 @@
     function gameHtml(g,idx){
       var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||'');
       var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;';
-      var leagueTxt=fmtLeague(g.league||'');
-      var tvTxt=g.tv||'';
       return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
         '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
         '<div class="gm">'+
           '<div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div>'+
           '<div class="gl-row">'+
-            '<span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+leagueTxt+'</span>'+
-            (tvTxt?'<span class="gl-sep">·</span><span class="gtv">'+tvTxt+'</span>':'')+
+            '<span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(g.league||'')+'</span>'+
+            (g.tv?'<span class="gl-sep">·</span><span class="gtv">'+g.tv+'</span>':'')+
           '</div>'+
         '</div>'+
       '</div>';
