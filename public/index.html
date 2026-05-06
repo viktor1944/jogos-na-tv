@@ -303,6 +303,19 @@
   ];
 
   function norm(n){ return (n||'').replace(/\s*\(.*?\)/g,'').trim().toLowerCase(); }
+
+  // Capitaliza primeira letra de cada palavra principal
+  function capitalize(s){
+    if(!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Retorna label de exibição com primeira letra maiúscula garantida
+  function displayLabel(k){
+    var lbl = seen[k] || k;
+    return capitalize(lbl);
+  }
+
   function getDefaultColor(k){ for(var i=0;i<DEFAULT_COLORS.length;i++){var e=DEFAULT_COLORS[i];for(var j=0;j<e.names.length;j++) if(k===e.names[j]) return e.color;} return null; }
   function getColor(n){ var k=norm(n); if(leagueColors[k]) return leagueColors[k]; if(removedColors[k]) return null; return getDefaultColor(k); }
 
@@ -372,9 +385,12 @@
       (function(tm,fav){ btn.addEventListener('click',function(){ if(fav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==tm.toLowerCase();}); else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(tm.toLowerCase())===-1) favTimes.push(tm); savePref(); renderFavTags(); render(); closePopup(); }); })(t,isFav);
       actions.appendChild(btn);
     });
-    var k=norm(g.league||''); var cur=getColor(g.league||'')||'#1D9E75';
+    var k=norm(g.league||'');
+    var cur=getColor(g.league||'')||'#1D9E75';
+    // usa displayLabel para garantir maiúscula no popup
+    var lbl=displayLabel(k);
     var colorDiv=document.createElement('div'); colorDiv.className='popup-btn';
-    colorDiv.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><span class="popup-btn-icon">🎨</span><span>Cor de <strong>'+(seen[k]||k)+'</strong></span></div><div style="display:flex;align-items:center;gap:8px;"><div class="remove-cor-btn">&#10005;</div><input type="color" value="'+cur+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/></div>';
+    colorDiv.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><span class="popup-btn-icon">🎨</span><span>Cor de <strong>'+lbl+'</strong></span></div><div style="display:flex;align-items:center;gap:8px;"><div class="remove-cor-btn">&#10005;</div><input type="color" value="'+cur+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/></div>';
     (function(key){ colorDiv.querySelector('.remove-cor-btn').addEventListener('click',function(e){ e.stopPropagation(); removeColor(key); closePopup(); }); colorDiv.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); })(k);
     actions.appendChild(colorDiv);
     document.getElementById('popupOverlay').classList.add('open');
@@ -397,7 +413,7 @@
     var sel=document.getElementById('colorSelect');
     sel.innerHTML='<option value="">Campeonato...</option>';
     Array.from(allSeenLeagues).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
-      var o=document.createElement('option'); o.value=k; o.textContent=seen[k]||k; sel.appendChild(o);
+      var o=document.createElement('option'); o.value=k; o.textContent=displayLabel(k); sel.appendChild(o);
     });
     sel.onchange=function(){ document.getElementById('colorPick').value=getColor(sel.value)||'#1D9E75'; };
     renderColorTags();
@@ -415,7 +431,7 @@
     Object.keys(leagueColors).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
       shown[k]=true; var cor=leagueColors[k];
       var div=document.createElement('div'); div.className='color-tag';
-      div.innerHTML='<div class="color-dot" style="background:'+cor+'"></div><span class="color-tag-name">'+(seen[k]||k)+'</span><input class="color-tag-edit" type="color" value="'+cor+'"/><div class="remove-cor-btn">&#10005;</div>';
+      div.innerHTML='<div class="color-dot" style="background:'+cor+'"></div><span class="color-tag-name">'+displayLabel(k)+'</span><input class="color-tag-edit" type="color" value="'+cor+'"/><div class="remove-cor-btn">&#10005;</div>';
       (function(key){ div.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(key); }); })(k);
       box.appendChild(div);
     });
@@ -423,7 +439,7 @@
       if(shown[k]) return;
       var dc=getDefaultColor(k); if(!dc) return;
       var div=document.createElement('div'); div.className='color-tag';
-      div.innerHTML='<div class="color-dot" style="background:'+dc+'"></div><span class="color-tag-name">'+(seen[k]||k)+' <small style="color:var(--text3)">(padrão)</small></span><input class="color-tag-edit" type="color" value="'+dc+'"/><div class="remove-cor-btn">&#10005;</div>';
+      div.innerHTML='<div class="color-dot" style="background:'+dc+'"></div><span class="color-tag-name">'+displayLabel(k)+' <small style="color:var(--text3)">(padrão)</small></span><input class="color-tag-edit" type="color" value="'+dc+'"/><div class="remove-cor-btn">&#10005;</div>';
       (function(key){ div.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(key); }); })(k);
       box.appendChild(div);
     });
@@ -466,7 +482,7 @@
       wrap.style.display='block';
       document.getElementById('lcnt').textContent=active.size+'/'+allArr.length+' selecionados';
       allArr.slice().sort(function(a,b){ var fa=isFem(seen[a]||a),fb=isFem(seen[b]||b); if(fa&&!fb) return 1; if(!fa&&fb) return -1; var pa=pri(a),pb=pri(b); if(pa!==pb) return pa-pb; return a.localeCompare(b); }).forEach(function(k){
-        var lbl=seen[k]||k; var fem=isFem(lbl); var cor=getColor(lbl); var isOn=active.has(k); var ht=hasToday(k);
+        var lbl=displayLabel(k); var fem=isFem(lbl); var cor=getColor(lbl); var isOn=active.has(k); var ht=hasToday(k);
         var c=document.createElement('div');
         c.className='chip'+(isOn?' on':'')+(fem?' feminino':'')+(ht?'':' noday');
         if(cor&&isOn){c.style.background=rgba(cor,0.15);c.style.borderColor=cor;c.style.color=cor;}
@@ -489,12 +505,14 @@
     function gameHtml(g,idx){
       var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||'');
       var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;';
+      // usa o nome original do jogo (já capitalizado pela API)
+      var leagueDisplay=capitalize(g.league||'');
       return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
         '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
         '<div class="gm">'+
           '<div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div>'+
           '<div class="gl-row">'+
-            '<span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(g.league||'')+'</span>'+
+            '<span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(leagueDisplay)+'</span>'+
             (g.tv?'<span class="gl-sep">·</span><span class="gtv">'+g.tv+'</span>':'')+
           '</div>'+
         '</div>'+
