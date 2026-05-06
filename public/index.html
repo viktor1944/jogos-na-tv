@@ -46,6 +46,16 @@
     .icon-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
     .spin { display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Banner instalar PWA */
+    .install-banner { display: none; background: linear-gradient(135deg,#1D9E75,#0F6E56); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 1.25rem; align-items: center; gap: 12px; }
+    .install-banner.show { display: flex; }
+    .install-banner-text { flex: 1; }
+    .install-banner-text strong { display: block; font-size: 14px; font-weight: 700; color: white; }
+    .install-banner-text span { font-size: 12px; color: rgba(255,255,255,0.8); }
+    .install-btn { padding: 8px 16px; background: white; color: var(--green-dark); border: none; border-radius: var(--radius); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .install-dismiss { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; flex-shrink: 0; line-height: 1; }
+
     .tabs-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
     .tab { padding: 8px 14px; font-size: 13px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
@@ -122,7 +132,7 @@
     .fav-section-label { font-size: 11px; font-weight: 600; color: var(--red); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0 4px; opacity: 0.8; }
     .divider { height: 1px; background: var(--border); margin: 8px 0; }
     .glist { display: flex; flex-direction: column; gap: 5px; }
-    .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
+    .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
     .gc:active { filter: brightness(0.95); }
     .gc.favorito { border-width: 2.5px; border-color: var(--red); box-shadow: 0 4px 20px rgba(229,57,53,0.25); background: linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%); position: relative; overflow: hidden; }
     .gc.favorito::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--red),#ff6b6b,var(--red)); background-size:200% 100%; animation:shimmer 2s linear infinite; }
@@ -130,13 +140,15 @@
     .gc.favorito .gt { color: var(--red) !important; font-weight: 700; }
     .gc.favorito .gn { font-weight: 700; }
     .fav-badge { display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:white;background:var(--red);border-radius:4px;padding:2px 7px;margin-left:6px;box-shadow:0 1px 4px rgba(229,57,53,0.4); }
-    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; }
-    .gm { flex: 1; min-width: 0; overflow: hidden; }
-    .gn-row { display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; }
-    .gn { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
-    .gtv { font-size: 12px; color: var(--tv-color); font-weight: 500; white-space: nowrap; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
-    .gl { font-size: 11px; color: var(--text3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; padding-top: 2px; }
+    .gm { flex: 1; min-width: 0; }
+    /* Nome completo numa linha, canal e torneio na segunda */
+    .gn { font-size: 15px; font-weight: 500; color: var(--text); white-space: normal; word-break: break-word; line-height: 1.3; margin-bottom: 4px; }
+    .gl-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+    .gl { font-size: 11px; color: var(--text3); white-space: nowrap; }
     .gl.fem { color: var(--pink); }
+    .gl-sep { font-size: 11px; color: var(--border2); }
+    .gtv { font-size: 11px; color: var(--tv-color); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
     .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -149,6 +161,7 @@
   </style>
 </head>
 <body>
+
 <div class="config-overlay" id="overlay" onclick="closeConfig()"></div>
 <div class="config-dropdown" id="configPanel">
   <div class="config-head">
@@ -207,6 +220,17 @@
     </div>
   </div>
 
+  <!-- Banner instalar PWA -->
+  <div class="install-banner" id="installBanner">
+    <div style="font-size:28px;">📲</div>
+    <div class="install-banner-text">
+      <strong>Instalar como app!</strong>
+      <span>Acesse sem digitar o link, direto da tela inicial</span>
+    </div>
+    <button class="install-btn" id="installBtn">Instalar</button>
+    <button class="install-dismiss" onclick="dismissInstall()">×</button>
+  </div>
+
   <div class="tabs-row">
     <div class="tabs">
       <button class="tab on" onclick="swTab('hoje')" id="tH">Hoje</button>
@@ -215,7 +239,7 @@
     </div>
     <div class="banner" id="banner" onclick="openConfig(); closeBanner();">
       <span style="font-size:16px;">🎨</span>
-      <span class="banner-text">Altere as cores nas configurações!</span>
+      <span class="banner-text">Altere as cores!</span>
       <button class="banner-close" onclick="event.stopPropagation(); closeBanner();">×</button>
     </div>
   </div>
@@ -255,12 +279,28 @@
   var data={hoje:[],amanha:[],depois:[]};
   var tab='hoje', active=new Set(), allSeenLeagues=new Set();
   var noFem=false, favTimes=[], leagueColors={}, seen={}, removedColors={};
+  var deferredInstall=null;
+
+  // PWA Install
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();
+    deferredInstall=e;
+    if(!ls('install_dismissed')) document.getElementById('installBanner').classList.add('show');
+  });
+  window.addEventListener('appinstalled',function(){ document.getElementById('installBanner').classList.remove('show'); });
+
+  document.getElementById('installBtn').addEventListener('click',function(){
+    if(deferredInstall){ deferredInstall.prompt(); deferredInstall.userChoice.then(function(){ deferredInstall=null; document.getElementById('installBanner').classList.remove('show'); }); }
+  });
+
+  function dismissInstall(){ document.getElementById('installBanner').classList.remove('show'); ls('install_dismissed','1'); }
 
   var DEFAULT_COLORS=[
     {names:['copa do mundo','fifa world cup'], color:'#f9c000'},
-    {names:['uefa champions league','champions league'], color:'#6a1b9a'},
-    {names:['conmebol libertadores','libertadores'], color:'#00b0ff'},
-    {names:['conmebol sul-americana','sul-americana','sulamericana'], color:'#00838f'},
+    {names:['champions league','uefa champions league'], color:'#6a1b9a'},
+    {names:['libertadores','conmebol libertadores'], color:'#00b0ff'},
+    {names:['sul-americana','sulamericana','conmebol sul-americana'], color:'#00838f'},
+    {names:['libertadores de futebol de areia'], color:'#00838f'},
     {names:['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'], color:'#009c3b'},
     {names:['brasileirão série b','brasileirao serie b'], color:'#f9a825'},
     {names:['premier league'], color:'#4a148c'},
@@ -275,7 +315,7 @@
   function getDefaultColor(k){ for(var i=0;i<DEFAULT_COLORS.length;i++){var e=DEFAULT_COLORS[i];for(var j=0;j<e.names.length;j++) if(k===e.names[j]) return e.color;} return null; }
   function getColor(n){ var k=norm(n); if(leagueColors[k]) return leagueColors[k]; if(removedColors[k]) return null; return getDefaultColor(k); }
 
-  var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sulamericana','sul-americana','premier league','la liga','laliga','bundesliga','ligue 1'];
+  var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores de futebol de areia','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sul-americana','sulamericana','premier league','la liga','laliga','bundesliga','ligue 1'];
   function pri(k){ for(var i=0;i<PRIORITY.length;i++) if(k.indexOf(PRIORITY[i])!==-1) return i; return 999; }
   function isFem(n){ var k=(n||'').toLowerCase(); return k.indexOf('feminino')!==-1||k.indexOf('feminina')!==-1||k.indexOf('nwsl')!==-1; }
   function isFavGame(ts,league){ if(!favTimes.length) return false; if(noFem&&isFem(league)) return false; var t=(ts||'').toLowerCase(); return favTimes.some(function(f){ return t.indexOf(f.toLowerCase())!==-1; }); }
@@ -308,7 +348,7 @@
     games.forEach(function(g){
       if(!g.league) return;
       var k=norm(g.league);
-      if(removedColors[k]) return; // não readiciona removidos
+      if(removedColors[k]) return;
       var lbl=g.league.replace(/\s*\(.*?\)/g,'').trim();
       if(!seen[k]||lbl.length>seen[k].length) seen[k]=lbl;
     });
@@ -318,13 +358,13 @@
   function removeColor(k){
     k=k.toLowerCase();
     delete leagueColors[k];
-    removedColors[k]=true; // impede reaparecer no accumulate
+    removedColors[k]=true;
     delete seen[k];
     allSeenLeagues.delete(k);
     saveSeen(); savePref(); renderColorSelect(); render();
   }
 
-  function closeBanner(){ var b=document.getElementById('banner'); if(b){b.style.display='none'; ls('banner_closed','true');} }
+  function closeBanner(){ var b=document.getElementById('banner'); if(b){b.style.display='none'; ls('banner_closed','1');} }
   function toggleAcc(){ var body=document.getElementById('accBody'),arrow=document.getElementById('accArrow'),isOpen=body.classList.contains('open'); body.className='acc-body'+(isOpen?'':' open'); arrow.className='acc-arrow'+(isOpen?'':' open'); }
   function openConfig(){ document.getElementById('overlay').classList.add('open'); document.getElementById('configPanel').classList.add('open'); renderColorSelect(); }
   function closeConfig(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('configPanel').classList.remove('open'); }
@@ -458,10 +498,18 @@
     function gameHtml(g,idx){
       var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||'');
       var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;';
+      var leagueTxt=fmtLeague(g.league||'');
+      var tvTxt=g.tv||'';
       return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
         '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
-        '<div class="gm"><div class="gn-row"><span class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</span>'+(g.tv?'<span class="gtv">· '+g.tv+'</span>':'')+
-        '</div><div class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(g.league||'')+'</div></div></div>';
+        '<div class="gm">'+
+          '<div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div>'+
+          '<div class="gl-row">'+
+            '<span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+leagueTxt+'</span>'+
+            (tvTxt?'<span class="gl-sep">·</span><span class="gtv">'+tvTxt+'</span>':'')+
+          '</div>'+
+        '</div>'+
+      '</div>';
     }
 
     if(favGames.length>0){
