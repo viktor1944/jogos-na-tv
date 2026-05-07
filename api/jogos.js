@@ -1,6 +1,6 @@
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=3600');
+  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
 
   try {
     var headers = {
@@ -9,44 +9,44 @@ module.exports = async function handler(req, res) {
       'Accept-Language': 'pt-BR,pt;q=0.9'
     };
 
-    var r1 = await fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers: headers });
-    var r2 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers: headers });
+    var r1 = await fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers });
+    var r2 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers });
     var h1 = await r1.text();
     var h2 = await r2.text();
 
-    // Datas em horário de Brasília (UTC-3)
-    var now = new Date();
-    var brtOffset = -3 * 60; // minutos
-    var brtNow = new Date(now.getTime() + (brtOffset - now.getTimezoneOffset()) * 60000);
+    // Horário de Brasília (UTC-3)
+    function getBRT(offsetDays) {
+      var now = new Date();
+      var brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      brt.setDate(brt.getDate() + (offsetDays || 0));
+      return {
+        dd: String(brt.getDate()).padStart(2,'0'),
+        mm: String(brt.getMonth()+1).padStart(2,'0')
+      };
+    }
 
-    function pad(n){ return String(n).padStart(2,'0'); }
+    var today    = getBRT(0);
+    var tomorrow = getBRT(1);
+    var after    = getBRT(2);
 
-    var todayDD   = pad(brtNow.getDate());
-    var todayMM   = pad(brtNow.getMonth()+1);
-    var todayStr  = todayDD + '/' + todayMM;
+    var jogosHoje   = extrairPorData(h1, today.dd,    today.mm);
+    var jogosAmanha = extrairPorData(h2, tomorrow.dd, tomorrow.mm);
+    var jogosDepois = extrairPorData(h2, after.dd,    after.mm);
 
-    var tomDate = new Date(brtNow); tomDate.setDate(brtNow.getDate()+1);
-    var tomorrowStr = pad(tomDate.getDate()) + '/' + pad(tomDate.getMonth()+1);
-
-    var aftDate = new Date(brtNow); aftDate.setDate(brtNow.getDate()+2);
-    var afterStr = pad(aftDate.getDate()) + '/' + pad(aftDate.getMonth()+1);
-
-    // Extrai todos os blocos de data do HTML e os jogos de cada bloco
-    // Retorna apenas jogos da data solicitada
-    var jogosHoje   = extrairPorData(h1, todayStr);
-    var jogosAmanha = extrairPorData(h2, tomorrowStr);
-    var jogosDepois = extrairPorData(h2, afterStr);
-
-    // Fallbacks: se não achou por data, tenta extração simples
-    if(jogosHoje.length === 0)   jogosHoje   = extrair(h1);
-    if(jogosAmanha.length === 0) jogosAmanha = extrair(h2);
+    // fallback se não encontrou por data
+    if (jogosHoje.length === 0)   jogosHoje   = extrair(h1);
+    if (jogosAmanha.length === 0) jogosAmanha = extrair(h2);
 
     res.status(200).json({
       hoje:      jogosHoje,
       amanha:    jogosAmanha,
       depois:    jogosDepois,
       updatedAt: new Date().toISOString(),
-      debug: { todayStr, tomorrowStr, afterStr }
+      debug: {
+        brtToday:    today.dd+'/'+today.mm,
+        brtTomorrow: tomorrow.dd+'/'+tomorrow.mm,
+        brtAfter:    after.dd+'/'+after.mm
+      }
     });
 
   } catch (err) {
@@ -54,38 +54,46 @@ module.exports = async function handler(req, res) {
   }
 };
 
-function pad(n){ return String(n).padStart(2,'0'); }
+// Divide o HTML em seções por heading de data ("Quinta – 07/05" ou "07/05")
+// e retorna só os jogos da seção que bate com DD/MM pedido
+function extrairPorData(html, dd, mm) {
+  var wanted = dd + '/' + mm;
 
-// Divide o HTML em seções por data e retorna só os jogos da data pedida
-function extrairPorData(html, wantedDate) {
-  // Procura padrões de data: DD/MM ou DD/MM/YYYY no HTML
-  // O site coloca datas assim: "07/05" ou "07/05/2026"
-  var dateTagPattern = /(\d{2}\/\d{2})(?:\/\d{4})?/g;
-  
-  // Coleta todas as ocorrências de datas e suas posições
-  var dateSections = [];
+  // Padrão que captura headings de data como:
+  // <h2...>Quinta – 07/05</h2>  ou  <h3...>07/05/2026</h3>  ou qualquer tag com a data
+  // Captura a posição de cada ocorrência de DD/MM no HTML
+  var reDate = /\b(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?\b/g;
+
+  var sections = [];
   var m;
-  while ((m = dateTagPattern.exec(html)) !== null) {
-    var dateFound = m[1]; // DD/MM
-    // evita duplicatas consecutivas
-    if (dateSections.length === 0 || dateSections[dateSections.length-1].date !== dateFound) {
-      dateSections.push({ date: dateFound, start: m.index });
+  while ((m = reDate.exec(html)) !== null) {
+    var fdd = m[1].padStart(2,'0');
+    var fmm = m[2].padStart(2,'0');
+
+    // ignora datas que claramente são horas (ex: 19/00 não existe como mês)
+    if (parseInt(fmm) > 12) continue;
+    // ignora dias impossíveis
+    if (parseInt(fdd) > 31) continue;
+
+    var last = sections[sections.length - 1];
+    if (!last || last.dd !== fdd || last.mm !== fmm) {
+      sections.push({ dd: fdd, mm: fmm, start: m.index });
     }
   }
 
-  if (dateSections.length === 0) return [];
+  if (sections.length === 0) return [];
 
-  // Define o bloco de cada seção
-  for (var i = 0; i < dateSections.length; i++) {
-    dateSections[i].end = (i+1 < dateSections.length) ? dateSections[i+1].start : html.length;
+  // define o fim de cada seção
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].end = (i + 1 < sections.length) ? sections[i+1].start : html.length;
   }
 
-  // Pega o bloco da data pedida
+  // extrai só as seções que batem com a data pedida
   var resultado = [];
-  for (var j = 0; j < dateSections.length; j++) {
-    if (dateSections[j].date === wantedDate) {
-      var bloco = html.substring(dateSections[j].start, dateSections[j].end);
-      resultado = resultado.concat(extrair(bloco));
+  for (var j = 0; j < sections.length; j++) {
+    var s = sections[j];
+    if (s.dd === dd && s.mm === mm) {
+      resultado = resultado.concat(extrair(html.substring(s.start, s.end)));
     }
   }
 
@@ -93,13 +101,13 @@ function extrairPorData(html, wantedDate) {
 }
 
 function cleanLeague(league) {
-  if(!league) return league;
+  if (!league) return league;
   var l = league.trim();
 
-  var paren = l.match(/(\s*\(.*?\)\s*)$/);
+  var paren  = l.match(/(\s*\(.*?\)\s*)$/);
   var suffix = paren ? paren[1].trim() : '';
-  var base = paren ? l.slice(0, l.length - paren[1].length).trim() : l;
-  var b = base.toLowerCase();
+  var base   = paren ? l.slice(0, l.length - paren[1].length).trim() : l;
+  var b      = base.toLowerCase();
 
   var map = [
     ['conmebol libertadores de futebol de areia', 'Libertadores de Futebol de Areia'],
@@ -115,10 +123,10 @@ function cleanLeague(league) {
     ['copa conmebol libertadores',                 'Libertadores'],
   ];
 
-  for(var i=0;i<map.length;i++){
-    if(b === map[i][0]){
-      var inner = suffix.replace(/[()]/g,'').trim();
-      return map[i][1] + (inner ? ' ('+inner+')' : '');
+  for (var i = 0; i < map.length; i++) {
+    if (b === map[i][0]) {
+      var inner = suffix.replace(/[()]/g, '').trim();
+      return map[i][1] + (inner ? ' (' + inner + ')' : '');
     }
   }
 
@@ -126,9 +134,9 @@ function cleanLeague(league) {
 }
 
 function extrair(html) {
-  var jogos = [];
+  var jogos   = [];
   var pattern = '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})(.+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
-  var re = new RegExp(pattern, 'gi');
+  var re      = new RegExp(pattern, 'gi');
   var m;
 
   while ((m = re.exec(html)) !== null) {
