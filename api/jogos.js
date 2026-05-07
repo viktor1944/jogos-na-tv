@@ -29,11 +29,19 @@ module.exports = async function handler(req, res) {
     var tomorrow = getBRT(1);
     var after    = getBRT(2);
 
-    var jogosHoje   = extrairPorData(h1, today.dd,    today.mm);
-    var jogosAmanha = extrairPorData(h2, tomorrow.dd, tomorrow.mm);
-    var jogosDepois = extrairPorData(h2, after.dd,    after.mm);
+    // Divide o HTML em blocos por data e mapeia cada data aos seus jogos
+    var blocosHoje   = dividirPorData(h1);
+    var blocosAmanha = dividirPorData(h2);
 
-    // fallback se não encontrou por data
+    var todayKey    = today.dd    + '/' + today.mm;
+    var tomorrowKey = tomorrow.dd + '/' + tomorrow.mm;
+    var afterKey    = after.dd    + '/' + after.mm;
+
+    var jogosHoje   = blocosHoje[todayKey]    || [];
+    var jogosAmanha = blocosAmanha[tomorrowKey] || [];
+    var jogosDepois = blocosAmanha[afterKey]    || [];
+
+    // fallback: se não encontrou por data, usa tudo
     if (jogosHoje.length === 0)   jogosHoje   = extrair(h1);
     if (jogosAmanha.length === 0) jogosAmanha = extrair(h2);
 
@@ -43,9 +51,11 @@ module.exports = async function handler(req, res) {
       depois:    jogosDepois,
       updatedAt: new Date().toISOString(),
       debug: {
-        brtToday:    today.dd+'/'+today.mm,
-        brtTomorrow: tomorrow.dd+'/'+tomorrow.mm,
-        brtAfter:    after.dd+'/'+after.mm
+        brtToday:      todayKey,
+        brtTomorrow:   tomorrowKey,
+        brtAfter:      afterKey,
+        datasEncontradas_hoje:   Object.keys(blocosHoje),
+        datasEncontradas_amanha: Object.keys(blocosAmanha)
       }
     });
 
@@ -54,47 +64,51 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Divide o HTML em seções por heading de data ("Quinta – 07/05" ou "07/05")
-// e retorna só os jogos da seção que bate com DD/MM pedido
-function extrairPorData(html, dd, mm) {
-  var wanted = dd + '/' + mm;
+// Divide o HTML em blocos por data
+// Retorna um objeto { "07/05": [jogos...], "08/05": [jogos...], ... }
+function dividirPorData(html) {
+  var resultado = {};
 
-  // Padrão que captura headings de data como:
-  // <h2...>Quinta – 07/05</h2>  ou  <h3...>07/05/2026</h3>  ou qualquer tag com a data
-  // Captura a posição de cada ocorrência de DD/MM no HTML
-  var reDate = /\b(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?\b/g;
+  // Procura padrões como "Quinta – 07/05" ou "Sexta – 08/05"
+  // O site usa h2 com esse formato. Precisamos achar cada heading de data
+  // e pegar os jogos entre esse heading e o próximo heading de data.
+
+  // Padrão: qualquer ocorrência de DD/MM (com mês válido 01-12 e dia válido 01-31)
+  // Ignora horários como 19h00 (que não tem barra) e URLs que tenham /
+  var reDateHeading = /\b(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{4})?\b/g;
 
   var sections = [];
   var m;
-  while ((m = reDate.exec(html)) !== null) {
-    var fdd = m[1].padStart(2,'0');
-    var fmm = m[2].padStart(2,'0');
 
-    // ignora datas que claramente são horas (ex: 19/00 não existe como mês)
-    if (parseInt(fmm) > 12) continue;
-    // ignora dias impossíveis
-    if (parseInt(fdd) > 31) continue;
+  while ((m = reDateHeading.exec(html)) !== null) {
+    var dd  = m[1];
+    var mm  = m[2];
+    var key = dd + '/' + mm;
 
+    // evita duplicatas consecutivas da mesma data
     var last = sections[sections.length - 1];
-    if (!last || last.dd !== fdd || last.mm !== fmm) {
-      sections.push({ dd: fdd, mm: fmm, start: m.index });
-    }
+    if (last && last.key === key) continue;
+
+    sections.push({ key: key, start: m.index });
   }
 
-  if (sections.length === 0) return [];
+  if (sections.length === 0) return {};
 
-  // define o fim de cada seção
+  // define fim de cada seção
   for (var i = 0; i < sections.length; i++) {
-    sections[i].end = (i + 1 < sections.length) ? sections[i+1].start : html.length;
+    sections[i].end = (i + 1 < sections.length)
+      ? sections[i + 1].start
+      : html.length;
   }
 
-  // extrai só as seções que batem com a data pedida
-  var resultado = [];
+  // extrai jogos de cada seção
   for (var j = 0; j < sections.length; j++) {
-    var s = sections[j];
-    if (s.dd === dd && s.mm === mm) {
-      resultado = resultado.concat(extrair(html.substring(s.start, s.end)));
-    }
+    var s     = sections[j];
+    var bloco = html.substring(s.start, s.end);
+    var jogos = extrair(bloco);
+
+    if (!resultado[s.key]) resultado[s.key] = [];
+    resultado[s.key] = resultado[s.key].concat(jogos);
   }
 
   return resultado;
