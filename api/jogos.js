@@ -18,38 +18,54 @@ module.exports = async function handler(req, res) {
       var now = new Date();
       var brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
       brt.setDate(brt.getDate() + (offsetDays || 0));
-      return String(brt.getDate()).padStart(2,'0') + '/' + String(brt.getMonth()+1).padStart(2,'0');
+      return brt;
     }
 
-    var todayKey    = getBRT(0);
-    var yesterdayKey = getBRT(-1);
-    var tomorrowKey = getBRT(1);
-    var afterKey    = getBRT(2);
+    function formatDate(d) {
+      return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+    }
+
+    function getDiaSemana(d) {
+      var dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+      return dias[d.getDay()];
+    }
+
+    var brtHoje   = getBRT(0);
+    var brtOntem  = getBRT(-1);
+    var brtAmanha = getBRT(1);
+    var brtDepois = getBRT(2);
+
+    var todayKey     = formatDate(brtHoje);
+    var yesterdayKey = formatDate(brtOntem);
+    var tomorrowKey  = formatDate(brtAmanha);
+    var afterKey     = formatDate(brtDepois);
 
     var blocosHoje   = dividir(h1);
     var blocosAmanha = dividir(h2);
 
-    // Para hoje: aceita hoje OU ontem (site pode não ter atualizado ainda)
-    // Se tiver múltiplos dias, pega o mais recente
-    var jogosHoje = blocosHoje[todayKey]
-      || blocosHoje[yesterdayKey]
-      || primeiroBloco(blocosHoje)
-      || [];
+    var jogosHoje   = blocosHoje[todayKey]
+                   || blocosHoje[yesterdayKey]
+                   || primeiroBloco(blocosHoje)
+                   || [];
+    var jogosAmanha = blocosAmanha[tomorrowKey]
+                   || primeiroBloco(blocosAmanha)
+                   || [];
+    var jogosDepois = blocosAmanha[afterKey] || [];
 
-    // Se a página tem MÚLTIPLOS dias (hoje + amanhã misturados),
-    // pega só o bloco correto
     if (blocosHoje[todayKey] && blocosHoje[tomorrowKey]) {
       jogosHoje = blocosHoje[todayKey];
     }
-
-    var jogosAmanha = blocosAmanha[tomorrowKey] || primeiroBloco(blocosAmanha) || [];
-    var jogosDepois = blocosAmanha[afterKey]    || [];
 
     res.status(200).json({
       hoje:      jogosHoje,
       amanha:    jogosAmanha,
       depois:    jogosDepois,
       updatedAt: new Date().toISOString(),
+      labels: {
+        hoje:   getDiaSemana(brtHoje)   + ' · ' + todayKey,
+        amanha: getDiaSemana(brtAmanha) + ' · ' + tomorrowKey,
+        depois: getDiaSemana(brtDepois) + ' · ' + afterKey
+      },
       debug: {
         todayKey, yesterdayKey, tomorrowKey, afterKey,
         datasHoje:   Object.keys(blocosHoje),
@@ -62,6 +78,28 @@ module.exports = async function handler(req, res) {
   }
 };
 
+var DIAS_NUMERO = {
+  'domingo': 0, 'dom': 0,
+  'segunda': 1, 'seg': 1,
+  'terca': 2, 'terca-feira': 2,
+  'quarta': 3, 'qua': 3,
+  'quinta': 4, 'qui': 4,
+  'sexta': 5, 'sex': 5,
+  'sabado': 6, 'sab': 6
+};
+
+function normalizarTexto(t) {
+  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function diaSemanaDaString(texto) {
+  var t = normalizarTexto(texto);
+  for (var nome in DIAS_NUMERO) {
+    if (t.indexOf(nome) !== -1) return DIAS_NUMERO[nome];
+  }
+  return -1;
+}
+
 function primeiroBloco(blocos) {
   var keys = Object.keys(blocos).filter(function(k){ return k !== '__sem_data__'; });
   return keys.length > 0 ? blocos[keys[0]] : null;
@@ -71,13 +109,23 @@ function dividir(html) {
   var resultado = {};
   var sections  = [];
 
+  // Site coloca data quebrada em spans dentro de h2:
+  // <h2><span>Sexta – 08/0</span><span>5</span></h2>
+  // Remove tags e espaços para juntar fragmentos antes de buscar DD/MM
   var reH2 = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
   var m;
 
   while ((m = reH2.exec(html)) !== null) {
-    var textoH2 = m[1].replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&#8211;/g,'–').trim();
-    var reData  = /\b(\d{1,2})\/(\d{1,2})\b/;
-    var md      = reData.exec(textoH2);
+    var textoLimpo = m[1]
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, '')
+      .replace(/&#8211;/g, '–')
+      .replace(/\s+/g, '')
+      .trim();
+
+    // Procura DD/MM no texto sem espaços
+    var reData = /(\d{1,2})\/(\d{1,2})/;
+    var md     = reData.exec(textoLimpo);
     if (!md) continue;
 
     var dd = md[1].padStart(2,'0');
@@ -85,7 +133,19 @@ function dividir(html) {
     if (parseInt(mm) < 1 || parseInt(mm) > 12) continue;
     if (parseInt(dd) < 1 || parseInt(dd) > 31) continue;
 
-    var key  = dd + '/' + mm;
+    var key = dd + '/' + mm;
+
+    // Valida com dia da semana: constrói data e verifica se bate
+    var ano = new Date().getFullYear();
+    var dataH2 = new Date(ano, parseInt(mm)-1, parseInt(dd));
+    var diaNomeH2 = diaSemanaDaString(textoLimpo);
+
+    // Se o dia da semana não bate com a data, tenta com ano seguinte
+    if (diaNomeH2 !== -1 && dataH2.getDay() !== diaNomeH2) {
+      dataH2 = new Date(ano+1, parseInt(mm)-1, parseInt(dd));
+      // Se ainda não bate, confia na data mesmo assim
+    }
+
     var last = sections[sections.length - 1];
     if (last && last.key === key) continue;
 
@@ -93,7 +153,6 @@ function dividir(html) {
   }
 
   if (sections.length === 0) {
-    // fallback: separa por salto de horário
     var todos  = extrair(html);
     var grupos = cortarPorDia(todos);
     var res    = {};
