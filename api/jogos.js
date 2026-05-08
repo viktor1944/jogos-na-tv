@@ -25,26 +25,22 @@ module.exports = async function handler(req, res) {
     var tomorrowKey = getBRT(1);
     var afterKey    = getBRT(2);
 
-    // Extrai todos os jogos e separa pelo salto de horário
-    // Quando os horários voltam muito para trás (ex: de 23h para 03h), virou o dia
-    var todosHoje   = extrair(h1);
-    var todosAmanha = extrair(h2);
+    var blocosHoje   = dividir(h1);
+    var blocosAmanha = dividir(h2);
 
-    var cortadoHoje   = cortarPorDia(todosHoje);
-    var cortadoAmanha = cortarPorDia(todosAmanha);
+    var jogosHoje   = blocosHoje[todayKey]      || primeiroBloco(blocosHoje)   || [];
+    var jogosAmanha = blocosAmanha[tomorrowKey] || primeiroBloco(blocosAmanha) || [];
+    var jogosDepois = blocosAmanha[afterKey]    || [];
 
     res.status(200).json({
-      hoje:      cortadoHoje[0]   || [],
-      amanha:    cortadoAmanha[0] || [],
-      depois:    cortadoAmanha[1] || [],
+      hoje:      jogosHoje,
+      amanha:    jogosAmanha,
+      depois:    jogosDepois,
       updatedAt: new Date().toISOString(),
       debug: {
         todayKey, tomorrowKey, afterKey,
-        qtdDiasHoje:   cortadoHoje.length,
-        qtdDiasAmanha: cortadoAmanha.length,
-        primeiroHoje:   cortadoHoje[0]   ? cortadoHoje[0][0]   : null,
-        primeiroAmanha: cortadoAmanha[0] ? cortadoAmanha[0][0] : null,
-        primeiroDepois: cortadoAmanha[1] ? cortadoAmanha[1][0] : null
+        datasHoje:   Object.keys(blocosHoje),
+        datasAmanha: Object.keys(blocosAmanha)
       }
     });
 
@@ -53,35 +49,87 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Divide lista de jogos em grupos de dias
-// Detecta virada de dia quando o horário cai mais de 3 horas em relação ao anterior
-function cortarPorDia(jogos) {
-  if (!jogos.length) return [[]];
+function primeiroBloco(blocos) {
+  var keys = Object.keys(blocos).filter(function(k){ return k !== '__sem_data__'; });
+  return keys.length > 0 ? blocos[keys[0]] : null;
+}
 
-  var grupos = [];
-  var grupoAtual = [];
-  var minAnterior = toMin(jogos[0].time);
+// A data fica dentro de <h2><span ...>Quinta – 07/05</span></h2>
+// Precisamos achar o <h2> que contém DD/MM dentro de qualquer tag filha
+function dividir(html) {
+  var resultado = {};
+  var sections  = [];
 
-  for (var i = 0; i < jogos.length; i++) {
-    var min = toMin(jogos[i].time);
-    // Se o horário caiu mais de 180 minutos (3h), virou o dia
-    if (i > 0 && min < minAnterior - 180) {
-      grupos.push(grupoAtual);
-      grupoAtual = [];
-    }
-    grupoAtual.push(jogos[i]);
-    // só atualiza minAnterior se subiu (não deixa cair por horários iguais)
-    if (min >= minAnterior) minAnterior = min;
+  // Pega o bloco <h2>...</h2> inteiro e extrai DD/MM de dentro dele
+  // ignora tags internas, pega só o texto
+  var reH2 = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
+  var m;
+
+  while ((m = reH2.exec(html)) !== null) {
+    // remove todas as tags HTML de dentro do h2 para ter só o texto
+    var textoH2 = m[1].replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g,' ').replace(/&#8211;/g,'–').trim();
+
+    // procura DD/MM no texto limpo
+    var reData = /\b(\d{1,2})\/(\d{1,2})\b/;
+    var md = reData.exec(textoH2);
+    if (!md) continue;
+
+    var dd = md[1].padStart(2,'0');
+    var mm = md[2].padStart(2,'0');
+
+    // valida mês e dia
+    if (parseInt(mm) < 1 || parseInt(mm) > 12) continue;
+    if (parseInt(dd) < 1 || parseInt(dd) > 31) continue;
+
+    var key  = dd + '/' + mm;
+    var last = sections[sections.length - 1];
+    if (last && last.key === key) continue;
+
+    sections.push({ key: key, start: m.index });
   }
 
-  if (grupoAtual.length > 0) grupos.push(grupoAtual);
+  if (sections.length === 0) {
+    // fallback: separa por salto de horário
+    var todos = extrair(html);
+    var grupos = cortarPorDia(todos);
+    var res = {};
+    grupos.forEach(function(g, i){ res['dia_'+(i+1)] = g; });
+    return res;
+  }
+
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].end = (i + 1 < sections.length) ? sections[i+1].start : html.length;
+  }
+
+  for (var j = 0; j < sections.length; j++) {
+    var s     = sections[j];
+    var bloco = html.substring(s.start, s.end);
+    var jogos = extrair(bloco);
+    if (!resultado[s.key]) resultado[s.key] = [];
+    resultado[s.key] = resultado[s.key].concat(jogos);
+  }
+
+  return resultado;
+}
+
+// Fallback: divide jogos pelo salto de horário (virada de dia)
+function cortarPorDia(jogos) {
+  if (!jogos.length) return [[]];
+  var grupos = [], grupoAtual = [], minAnt = toMin(jogos[0].time);
+  for (var i = 0; i < jogos.length; i++) {
+    var min = toMin(jogos[i].time);
+    if (i > 0 && min < minAnt - 180) { grupos.push(grupoAtual); grupoAtual = []; }
+    grupoAtual.push(jogos[i]);
+    if (min >= minAnt) minAnt = min;
+  }
+  if (grupoAtual.length) grupos.push(grupoAtual);
   return grupos;
 }
 
 function toMin(t) {
   if (!t) return 0;
-  var p = t.replace('h', ':').split(':');
-  return parseInt(p[0]) * 60 + parseInt(p[1] || 0);
+  var p = t.replace('h',':').split(':');
+  return parseInt(p[0])*60 + parseInt(p[1]||0);
 }
 
 function cleanLeague(league) {
@@ -106,8 +154,8 @@ function cleanLeague(league) {
   ];
   for (var i = 0; i < map.length; i++) {
     if (b === map[i][0]) {
-      var inner = suffix.replace(/[()]/g, '').trim();
-      return map[i][1] + (inner ? ' (' + inner + ')' : '');
+      var inner = suffix.replace(/[()]/g,'').trim();
+      return map[i][1] + (inner ? ' ('+inner+')' : '');
     }
   }
   return l;
@@ -118,30 +166,24 @@ function extrair(html) {
   var pattern = '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})(.+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
   var re      = new RegExp(pattern, 'gi');
   var m;
-
   while ((m = re.exec(html)) !== null) {
     var time   = m[1].trim();
-    var titulo = m[2].replace(/<[^>]+>/g, '').trim();
-    var tv     = m[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-
+    var titulo = m[2].replace(/<[^>]+>/g,'').trim();
+    var tv     = m[3].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
     var partes = titulo.split('&#8211;');
     if (partes.length === 1) partes = titulo.split('\u2013');
-
     var league, teams;
     if (partes.length >= 2) {
-      league = partes[partes.length - 1].trim();
-      teams  = partes.slice(0, partes.length - 1).join('\u2013').trim();
+      league = partes[partes.length-1].trim();
+      teams  = partes.slice(0,partes.length-1).join('\u2013').trim();
     } else {
       league = 'Outros';
       teams  = titulo.trim();
     }
-
-    teams  = teams.replace(/^\s*[-\u2013]\s*/, '').trim();
-    league = league.replace(/\s*[-\u2013]\s*$/, '').trim();
+    teams  = teams.replace(/^\s*[-\u2013]\s*/,'').trim();
+    league = league.replace(/\s*[-\u2013]\s*$/,'').trim();
     league = cleanLeague(league);
-
     if (teams) jogos.push({ time, teams, league, tv });
   }
-
   return jogos;
 }
