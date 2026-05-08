@@ -55,7 +55,7 @@
     .install-dismiss { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; flex-shrink: 0; line-height: 1; }
     .tabs-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
-    .tab { padding: 8px 14px; font-size: 13px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+    .tab { padding: 8px 14px; font-size: 12px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
     .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
     .banner { display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#ff6b00,#ff9500); border-radius: 20px; padding: 6px 12px 6px 10px; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 10px rgba(255,107,0,0.35); animation: pulse 2.5s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{box-shadow:0 2px 10px rgba(255,107,0,0.35);} 50%{box-shadow:0 2px 18px rgba(255,107,0,0.6);} }
@@ -303,19 +303,8 @@
   ];
 
   function norm(n){ return (n||'').replace(/\s*\(.*?\)/g,'').trim().toLowerCase(); }
-
-  // Capitaliza primeira letra de cada palavra principal
-  function capitalize(s){
-    if(!s) return s;
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-
-  // Retorna label de exibição com primeira letra maiúscula garantida
-  function displayLabel(k){
-    var lbl = seen[k] || k;
-    return capitalize(lbl);
-  }
-
+  function capitalize(s){ if(!s) return s; return s.charAt(0).toUpperCase()+s.slice(1); }
+  function displayLabel(k){ return capitalize(seen[k]||k); }
   function getDefaultColor(k){ for(var i=0;i<DEFAULT_COLORS.length;i++){var e=DEFAULT_COLORS[i];for(var j=0;j<e.names.length;j++) if(k===e.names[j]) return e.color;} return null; }
   function getColor(n){ var k=norm(n); if(leagueColors[k]) return leagueColors[k]; if(removedColors[k]) return null; return getDefaultColor(k); }
 
@@ -385,9 +374,7 @@
       (function(tm,fav){ btn.addEventListener('click',function(){ if(fav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==tm.toLowerCase();}); else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(tm.toLowerCase())===-1) favTimes.push(tm); savePref(); renderFavTags(); render(); closePopup(); }); })(t,isFav);
       actions.appendChild(btn);
     });
-    var k=norm(g.league||'');
-    var cur=getColor(g.league||'')||'#1D9E75';
-    // usa displayLabel para garantir maiúscula no popup
+    var k=norm(g.league||''); var cur=getColor(g.league||'')||'#1D9E75';
     var lbl=displayLabel(k);
     var colorDiv=document.createElement('div'); colorDiv.className='popup-btn';
     colorDiv.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><span class="popup-btn-icon">🎨</span><span>Cor de <strong>'+lbl+'</strong></span></div><div style="display:flex;align-items:center;gap:8px;"><div class="remove-cor-btn">&#10005;</div><input type="color" value="'+cur+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/></div>';
@@ -445,7 +432,13 @@
     });
   }
 
-  function swTab(t){ tab=t; document.getElementById('tH').className='tab'+(t==='hoje'?' on':''); document.getElementById('tA').className='tab'+(t==='amanha'?' on':''); document.getElementById('tD').className='tab'+(t==='depois'?' on':''); render(); }
+  function swTab(t){
+    tab=t;
+    document.getElementById('tH').className='tab'+(t==='hoje'?' on':'');
+    document.getElementById('tA').className='tab'+(t==='amanha'?' on':'');
+    document.getElementById('tD').className='tab'+(t==='depois'?' on':'');
+    render();
+  }
 
   function buildActive(){
     allSeenLeagues=new Set(Object.keys(seen));
@@ -505,7 +498,6 @@
     function gameHtml(g,idx){
       var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||'');
       var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;';
-      // usa o nome original do jogo (já capitalizado pela API)
       var leagueDisplay=capitalize(g.league||'');
       return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
         '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
@@ -546,6 +538,16 @@
       removedColors=loadRemoved(); seen=loadSeen();
       accumulate(data.hoje); accumulate(data.amanha); accumulate(data.depois);
       buildActive();
+      // Atualiza abas com dia da semana e data
+      if(json.labels){
+        document.getElementById('tH').textContent=json.labels.hoje;
+        document.getElementById('tA').textContent=json.labels.amanha;
+        document.getElementById('tD').textContent=json.labels.depois;
+        // restaura aba ativa
+        document.getElementById('tH').className='tab'+(tab==='hoje'?' on':'');
+        document.getElementById('tA').className='tab'+(tab==='amanha'?' on':'');
+        document.getElementById('tD').className='tab'+(tab==='depois'?' on':'');
+      }
       if(json.updatedAt){ var d=new Date(json.updatedAt); document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
       if(loadBannerClosed()) document.getElementById('banner').style.display='none';
       renderFavTags(); render();
