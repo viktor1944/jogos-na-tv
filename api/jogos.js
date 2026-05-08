@@ -22,13 +22,26 @@ module.exports = async function handler(req, res) {
     }
 
     var todayKey    = getBRT(0);
+    var yesterdayKey = getBRT(-1);
     var tomorrowKey = getBRT(1);
     var afterKey    = getBRT(2);
 
     var blocosHoje   = dividir(h1);
     var blocosAmanha = dividir(h2);
 
-    var jogosHoje   = blocosHoje[todayKey]      || primeiroBloco(blocosHoje)   || [];
+    // Para hoje: aceita hoje OU ontem (site pode não ter atualizado ainda)
+    // Se tiver múltiplos dias, pega o mais recente
+    var jogosHoje = blocosHoje[todayKey]
+      || blocosHoje[yesterdayKey]
+      || primeiroBloco(blocosHoje)
+      || [];
+
+    // Se a página tem MÚLTIPLOS dias (hoje + amanhã misturados),
+    // pega só o bloco correto
+    if (blocosHoje[todayKey] && blocosHoje[tomorrowKey]) {
+      jogosHoje = blocosHoje[todayKey];
+    }
+
     var jogosAmanha = blocosAmanha[tomorrowKey] || primeiroBloco(blocosAmanha) || [];
     var jogosDepois = blocosAmanha[afterKey]    || [];
 
@@ -38,7 +51,7 @@ module.exports = async function handler(req, res) {
       depois:    jogosDepois,
       updatedAt: new Date().toISOString(),
       debug: {
-        todayKey, tomorrowKey, afterKey,
+        todayKey, yesterdayKey, tomorrowKey, afterKey,
         datasHoje:   Object.keys(blocosHoje),
         datasAmanha: Object.keys(blocosAmanha)
       }
@@ -54,30 +67,21 @@ function primeiroBloco(blocos) {
   return keys.length > 0 ? blocos[keys[0]] : null;
 }
 
-// A data fica dentro de <h2><span ...>Quinta – 07/05</span></h2>
-// Precisamos achar o <h2> que contém DD/MM dentro de qualquer tag filha
 function dividir(html) {
   var resultado = {};
   var sections  = [];
 
-  // Pega o bloco <h2>...</h2> inteiro e extrai DD/MM de dentro dele
-  // ignora tags internas, pega só o texto
   var reH2 = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
   var m;
 
   while ((m = reH2.exec(html)) !== null) {
-    // remove todas as tags HTML de dentro do h2 para ter só o texto
-    var textoH2 = m[1].replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g,' ').replace(/&#8211;/g,'–').trim();
-
-    // procura DD/MM no texto limpo
-    var reData = /\b(\d{1,2})\/(\d{1,2})\b/;
-    var md = reData.exec(textoH2);
+    var textoH2 = m[1].replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&#8211;/g,'–').trim();
+    var reData  = /\b(\d{1,2})\/(\d{1,2})\b/;
+    var md      = reData.exec(textoH2);
     if (!md) continue;
 
     var dd = md[1].padStart(2,'0');
     var mm = md[2].padStart(2,'0');
-
-    // valida mês e dia
     if (parseInt(mm) < 1 || parseInt(mm) > 12) continue;
     if (parseInt(dd) < 1 || parseInt(dd) > 31) continue;
 
@@ -90,21 +94,20 @@ function dividir(html) {
 
   if (sections.length === 0) {
     // fallback: separa por salto de horário
-    var todos = extrair(html);
+    var todos  = extrair(html);
     var grupos = cortarPorDia(todos);
-    var res = {};
+    var res    = {};
     grupos.forEach(function(g, i){ res['dia_'+(i+1)] = g; });
     return res;
   }
 
   for (var i = 0; i < sections.length; i++) {
-    sections[i].end = (i + 1 < sections.length) ? sections[i+1].start : html.length;
+    sections[i].end = (i+1 < sections.length) ? sections[i+1].start : html.length;
   }
 
   for (var j = 0; j < sections.length; j++) {
     var s     = sections[j];
-    var bloco = html.substring(s.start, s.end);
-    var jogos = extrair(bloco);
+    var jogos = extrair(html.substring(s.start, s.end));
     if (!resultado[s.key]) resultado[s.key] = [];
     resultado[s.key] = resultado[s.key].concat(jogos);
   }
@@ -112,7 +115,6 @@ function dividir(html) {
   return resultado;
 }
 
-// Fallback: divide jogos pelo salto de horário (virada de dia)
 function cortarPorDia(jogos) {
   if (!jogos.length) return [[]];
   var grupos = [], grupoAtual = [], minAnt = toMin(jogos[0].time);
