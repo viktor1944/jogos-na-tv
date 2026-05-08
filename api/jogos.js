@@ -9,10 +9,13 @@ module.exports = async function handler(req, res) {
       'Accept-Language': 'pt-BR,pt;q=0.9'
     };
 
+    // Busca as 3 páginas separadamente
     var r1 = await fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers });
     var r2 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers });
+    var r3 = await fetch('https://mantosdofutebol.com.br/jogos-de-depois-de-amanha-na-tv/', { headers });
     var h1 = await r1.text();
     var h2 = await r2.text();
+    var h3 = r3.ok ? await r3.text() : '';
 
     function getBRT(offsetDays) {
       var now = new Date();
@@ -32,15 +35,19 @@ module.exports = async function handler(req, res) {
     var tomorrowKey = tomorrow.dd + '/' + tomorrow.mm;
     var afterKey    = after.dd    + '/' + after.mm;
 
+    // Divide cada página pelos headings de data
     var blocosHoje   = dividirPorHeadingData(h1);
     var blocosAmanha = dividirPorHeadingData(h2);
+    var blocosDepois = h3 ? dividirPorHeadingData(h3) : {};
 
     var jogosHoje   = blocosHoje[todayKey]      || [];
     var jogosAmanha = blocosAmanha[tomorrowKey] || [];
-    var jogosDepois = blocosAmanha[afterKey]    || [];
+    var jogosDepois = blocosDepois[afterKey]    || blocosAmanha[afterKey] || [];
 
-    if (jogosHoje.length === 0)   jogosHoje   = extrair(h1);
-    if (jogosAmanha.length === 0) jogosAmanha = extrair(h2);
+    // fallbacks
+    if (jogosHoje.length === 0)   jogosHoje   = extrairSoPrimeiroDia(h1);
+    if (jogosAmanha.length === 0) jogosAmanha = extrairSoPrimeiroDia(h2);
+    if (jogosDepois.length === 0 && h3) jogosDepois = extrairSoPrimeiroDia(h3);
 
     res.status(200).json({
       hoje:      jogosHoje,
@@ -52,7 +59,9 @@ module.exports = async function handler(req, res) {
         tomorrowKey,
         afterKey,
         datasHoje:   Object.keys(blocosHoje),
-        datasAmanha: Object.keys(blocosAmanha)
+        datasAmanha: Object.keys(blocosAmanha),
+        datasDepois: Object.keys(blocosDepois),
+        paginaDepoisOk: r3.ok
       }
     });
 
@@ -61,45 +70,34 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Procura SOMENTE headings de data: tags h1/h2/h3/h4 ou strong/b
-// que contenham padrão "DiaDaSemana – DD/MM" ou apenas "DD/MM"
-// Divide o HTML em blocos e mapeia { "08/05": [jogos], "09/05": [jogos] }
+// Divide HTML em blocos por heading de data
+// Procura padrões como: "Sexta – 08/05", "Sábado – 09/05", "08/05"
+// dentro de tags h1-h6, strong, b, p
 function dividirPorHeadingData(html) {
   var resultado = {};
 
-  // Padrão específico: procura a data DENTRO de tags de heading
-  // Exemplos que o site usa:
-  //   <h2 ...>Sexta &#8211; 08/05</h2>
-  //   <h2 ...>Sábado &#8211; 09/05</h2>
-  //   <strong>Quinta – 07/05</strong>
-  // O traço pode ser – (U+2013), &#8211; ou -
-  var reHeading = /<(?:h[1-6]|strong|b)[^>]*>[^<]*(?:–|&#8211;|-)\s*(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{4})?[^<]*<\/(?:h[1-6]|strong|b)>/gi;
+  // Remove tags internas para limpar o texto dos headings
+  // Procura por: qualquer tag que contenha DD/MM precedido opcionalmente por texto e traço
+  // O traço pode ser: –  &#8211;  &ndash;  \u2013  -
+  var reHeading = /<(h[1-6]|strong|b|p)[^>]*>((?:[^<]|<(?!\/\1))*?)(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{2,4})?((?:[^<]|<(?!\/\1))*?)<\/\1>/gi;
 
   var sections = [];
   var m;
 
   while ((m = reHeading.exec(html)) !== null) {
-    var dd  = m[1];
-    var mm  = m[2];
+    var fullText = m[0].replace(/<[^>]+>/g, ''); // remove tags internas
+    // só considera se parecer um heading de data (tem dia da semana OU está sozinho)
+    // e não contém muitas palavras (não é um parágrafo de texto)
+    if (fullText.length > 60) continue; // headings de data são curtos
+
+    var dd  = m[3];
+    var mm  = m[4];
     var key = dd + '/' + mm;
 
     var last = sections[sections.length - 1];
     if (last && last.key === key) continue;
 
     sections.push({ key: key, start: m.index });
-  }
-
-  // fallback: se não achou headings com traço, tenta só DD/MM isolado em tag
-  if (sections.length === 0) {
-    var reFallback = /<(?:h[1-6]|strong|b)[^>]*>[^<]*(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{4})?[^<]*<\/(?:h[1-6]|strong|b)>/gi;
-    while ((m = reFallback.exec(html)) !== null) {
-      var dd2  = m[1];
-      var mm2  = m[2];
-      var key2 = dd2 + '/' + mm2;
-      var last2 = sections[sections.length - 1];
-      if (last2 && last2.key === key2) continue;
-      sections.push({ key: key2, start: m.index });
-    }
   }
 
   if (sections.length === 0) return {};
@@ -116,7 +114,6 @@ function dividirPorHeadingData(html) {
     var s     = sections[j];
     var bloco = html.substring(s.start, s.end);
     var jogos = extrair(bloco);
-
     if (!resultado[s.key]) resultado[s.key] = [];
     resultado[s.key] = resultado[s.key].concat(jogos);
   }
@@ -124,15 +121,29 @@ function dividirPorHeadingData(html) {
   return resultado;
 }
 
+// Fallback: pega só os jogos antes do primeiro heading de data diferente
+function extrairSoPrimeiroDia(html) {
+  // Procura o segundo heading de data (seria o segundo dia)
+  var reHeading = /<(?:h[1-6]|strong|b)[^>]*>[^<]*(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{2,4})?[^<]*<\/(?:h[1-6]|strong|b)>/gi;
+  var count = 0;
+  var m;
+  var cutAt = html.length;
+
+  while ((m = reHeading.exec(html)) !== null) {
+    count++;
+    if (count === 2) { cutAt = m.index; break; }
+  }
+
+  return extrair(html.substring(0, cutAt));
+}
+
 function cleanLeague(league) {
   if (!league) return league;
   var l = league.trim();
-
   var paren  = l.match(/(\s*\(.*?\)\s*)$/);
   var suffix = paren ? paren[1].trim() : '';
   var base   = paren ? l.slice(0, l.length - paren[1].length).trim() : l;
   var b      = base.toLowerCase();
-
   var map = [
     ['conmebol libertadores de futebol de areia', 'Libertadores de Futebol de Areia'],
     ['conmebol libertadores',                      'Libertadores'],
@@ -146,46 +157,5 @@ function cleanLeague(league) {
     ['fifa club world cup',                        'Mundial de Clubes'],
     ['copa conmebol libertadores',                 'Libertadores'],
   ];
-
   for (var i = 0; i < map.length; i++) {
     if (b === map[i][0]) {
-      var inner = suffix.replace(/[()]/g, '').trim();
-      return map[i][1] + (inner ? ' (' + inner + ')' : '');
-    }
-  }
-
-  return l;
-}
-
-function extrair(html) {
-  var jogos   = [];
-  var pattern = '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})(.+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
-  var re      = new RegExp(pattern, 'gi');
-  var m;
-
-  while ((m = re.exec(html)) !== null) {
-    var time   = m[1].trim();
-    var titulo = m[2].replace(/<[^>]+>/g, '').trim();
-    var tv     = m[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-
-    var partes = titulo.split('&#8211;');
-    if (partes.length === 1) partes = titulo.split('\u2013');
-
-    var league, teams;
-    if (partes.length >= 2) {
-      league = partes[partes.length - 1].trim();
-      teams  = partes.slice(0, partes.length - 1).join('\u2013').trim();
-    } else {
-      league = 'Outros';
-      teams  = titulo.trim();
-    }
-
-    teams  = teams.replace(/^\s*[-\u2013]\s*/, '').trim();
-    league = league.replace(/\s*[-\u2013]\s*$/, '').trim();
-    league = cleanLeague(league);
-
-    if (teams) jogos.push({ time, teams, league, tv });
-  }
-
-  return jogos;
-}
