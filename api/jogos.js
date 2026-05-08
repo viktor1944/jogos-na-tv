@@ -14,7 +14,6 @@ module.exports = async function handler(req, res) {
     var h1 = await r1.text();
     var h2 = await r2.text();
 
-    // Horário de Brasília (UTC-3)
     function getBRT(offsetDays) {
       var now = new Date();
       var brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
@@ -29,19 +28,17 @@ module.exports = async function handler(req, res) {
     var tomorrow = getBRT(1);
     var after    = getBRT(2);
 
-    // Divide o HTML em blocos por data e mapeia cada data aos seus jogos
-    var blocosHoje   = dividirPorData(h1);
-    var blocosAmanha = dividirPorData(h2);
-
     var todayKey    = today.dd    + '/' + today.mm;
     var tomorrowKey = tomorrow.dd + '/' + tomorrow.mm;
     var afterKey    = after.dd    + '/' + after.mm;
 
-    var jogosHoje   = blocosHoje[todayKey]    || [];
+    var blocosHoje   = dividirPorHeadingData(h1);
+    var blocosAmanha = dividirPorHeadingData(h2);
+
+    var jogosHoje   = blocosHoje[todayKey]      || [];
     var jogosAmanha = blocosAmanha[tomorrowKey] || [];
     var jogosDepois = blocosAmanha[afterKey]    || [];
 
-    // fallback: se não encontrou por data, usa tudo
     if (jogosHoje.length === 0)   jogosHoje   = extrair(h1);
     if (jogosAmanha.length === 0) jogosAmanha = extrair(h2);
 
@@ -51,11 +48,11 @@ module.exports = async function handler(req, res) {
       depois:    jogosDepois,
       updatedAt: new Date().toISOString(),
       debug: {
-        brtToday:      todayKey,
-        brtTomorrow:   tomorrowKey,
-        brtAfter:      afterKey,
-        datasEncontradas_hoje:   Object.keys(blocosHoje),
-        datasEncontradas_amanha: Object.keys(blocosAmanha)
+        todayKey,
+        tomorrowKey,
+        afterKey,
+        datasHoje:   Object.keys(blocosHoje),
+        datasAmanha: Object.keys(blocosAmanha)
       }
     });
 
@@ -64,32 +61,45 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Divide o HTML em blocos por data
-// Retorna um objeto { "07/05": [jogos...], "08/05": [jogos...], ... }
-function dividirPorData(html) {
+// Procura SOMENTE headings de data: tags h1/h2/h3/h4 ou strong/b
+// que contenham padrão "DiaDaSemana – DD/MM" ou apenas "DD/MM"
+// Divide o HTML em blocos e mapeia { "08/05": [jogos], "09/05": [jogos] }
+function dividirPorHeadingData(html) {
   var resultado = {};
 
-  // Procura padrões como "Quinta – 07/05" ou "Sexta – 08/05"
-  // O site usa h2 com esse formato. Precisamos achar cada heading de data
-  // e pegar os jogos entre esse heading e o próximo heading de data.
-
-  // Padrão: qualquer ocorrência de DD/MM (com mês válido 01-12 e dia válido 01-31)
-  // Ignora horários como 19h00 (que não tem barra) e URLs que tenham /
-  var reDateHeading = /\b(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{4})?\b/g;
+  // Padrão específico: procura a data DENTRO de tags de heading
+  // Exemplos que o site usa:
+  //   <h2 ...>Sexta &#8211; 08/05</h2>
+  //   <h2 ...>Sábado &#8211; 09/05</h2>
+  //   <strong>Quinta – 07/05</strong>
+  // O traço pode ser – (U+2013), &#8211; ou -
+  var reHeading = /<(?:h[1-6]|strong|b)[^>]*>[^<]*(?:–|&#8211;|-)\s*(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{4})?[^<]*<\/(?:h[1-6]|strong|b)>/gi;
 
   var sections = [];
   var m;
 
-  while ((m = reDateHeading.exec(html)) !== null) {
+  while ((m = reHeading.exec(html)) !== null) {
     var dd  = m[1];
     var mm  = m[2];
     var key = dd + '/' + mm;
 
-    // evita duplicatas consecutivas da mesma data
     var last = sections[sections.length - 1];
     if (last && last.key === key) continue;
 
     sections.push({ key: key, start: m.index });
+  }
+
+  // fallback: se não achou headings com traço, tenta só DD/MM isolado em tag
+  if (sections.length === 0) {
+    var reFallback = /<(?:h[1-6]|strong|b)[^>]*>[^<]*(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])(?:\/\d{4})?[^<]*<\/(?:h[1-6]|strong|b)>/gi;
+    while ((m = reFallback.exec(html)) !== null) {
+      var dd2  = m[1];
+      var mm2  = m[2];
+      var key2 = dd2 + '/' + mm2;
+      var last2 = sections[sections.length - 1];
+      if (last2 && last2.key === key2) continue;
+      sections.push({ key: key2, start: m.index });
+    }
   }
 
   if (sections.length === 0) return {};
@@ -101,7 +111,7 @@ function dividirPorData(html) {
       : html.length;
   }
 
-  // extrai jogos de cada seção
+  // extrai jogos de cada bloco
   for (var j = 0; j < sections.length; j++) {
     var s     = sections[j];
     var bloco = html.substring(s.start, s.end);
