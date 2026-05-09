@@ -99,6 +99,8 @@
     .popup-btn { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); cursor: pointer; font-size: 14px; color: var(--text); transition: background 0.12s; justify-content: space-between; }
     .popup-btn:hover { background: var(--border); }
     .popup-btn-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+    .popup-btn.danger { color: var(--red); border-color: rgba(229,57,53,0.3); background: #fff5f5; }
+    .popup-btn.danger:hover { background: #ffebeb; }
     .popup-cancel { margin-top: 8px; width: 100%; padding: 12px; border: none; background: none; color: var(--text3); font-size: 14px; cursor: pointer; border-radius: var(--radius); }
     .popup-cancel:hover { background: var(--surface2); }
     .acc-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1.25rem; overflow: hidden; }
@@ -245,7 +247,7 @@
   <div class="acc-wrap" id="leaguesWrap" style="display:none;">
     <div class="acc-header" onclick="toggleAcc()">
       <div class="acc-header-left">
-        <span>Campeonatos</span>
+        <span>Campeonatos que quero ver</span>
         <span id="lcnt" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text3)"></span>
       </div>
       <span class="acc-arrow" id="accArrow">▼</span>
@@ -357,6 +359,16 @@
     saveSeen(); savePref(); renderColorSelect(); render();
   }
 
+  function removeLeague(k){
+    k=k.toLowerCase();
+    delete leagueColors[k];
+    delete seen[k];
+    removedColors[k]=true;
+    allSeenLeagues.delete(k);
+    active.delete(k);
+    saveSeen(); savePref(); renderColorSelect(); render();
+  }
+
   function closeBanner(){ var b=document.getElementById('banner'); if(b){b.style.display='none'; ls('banner_closed','1');} }
   function toggleAcc(){ var body=document.getElementById('accBody'),arrow=document.getElementById('accArrow'),isOpen=body.classList.contains('open'); body.className='acc-body'+(isOpen?'':' open'); arrow.className='acc-arrow'+(isOpen?'':' open'); }
   function openConfig(){ document.getElementById('overlay').classList.add('open'); document.getElementById('configPanel').classList.add('open'); renderColorSelect(); }
@@ -366,6 +378,7 @@
     document.getElementById('popupMatch').textContent=g.teams;
     document.getElementById('popupLeague').textContent=g.league||'';
     var actions=document.getElementById('popupActions'); actions.innerHTML='';
+
     getTeams(g.teams).forEach(function(t){
       if(!t) return;
       var isFav=favTimes.some(function(f){return f.toLowerCase()===t.toLowerCase();});
@@ -374,12 +387,21 @@
       (function(tm,fav){ btn.addEventListener('click',function(){ if(fav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==tm.toLowerCase();}); else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(tm.toLowerCase())===-1) favTimes.push(tm); savePref(); renderFavTags(); render(); closePopup(); }); })(t,isFav);
       actions.appendChild(btn);
     });
+
     var k=norm(g.league||''); var cur=getColor(g.league||'')||'#1D9E75';
     var lbl=displayLabel(k);
     var colorDiv=document.createElement('div'); colorDiv.className='popup-btn';
     colorDiv.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><span class="popup-btn-icon">🎨</span><span>Cor de <strong>'+lbl+'</strong></span></div><div style="display:flex;align-items:center;gap:8px;"><div class="remove-cor-btn">&#10005;</div><input type="color" value="'+cur+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/></div>';
     (function(key){ colorDiv.querySelector('.remove-cor-btn').addEventListener('click',function(e){ e.stopPropagation(); removeColor(key); closePopup(); }); colorDiv.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); })(k);
     actions.appendChild(colorDiv);
+
+    var removeDiv=document.createElement('div');
+    removeDiv.className='popup-btn danger';
+    removeDiv.style.justifyContent='flex-start';
+    removeDiv.innerHTML='<span class="popup-btn-icon">🚫</span><span>Não quero ver <strong>'+lbl+'</strong> na minha lista <small style="color:var(--text3);font-weight:400;font-size:11px;">(para repor, acesse "Campeonatos que quero ver")</small></span>';
+    (function(key){ removeDiv.addEventListener('click',function(){ removeLeague(key); closePopup(); }); })(k);
+    actions.appendChild(removeDiv);
+
     document.getElementById('popupOverlay').classList.add('open');
   }
 
@@ -538,12 +560,10 @@
       removedColors=loadRemoved(); seen=loadSeen();
       accumulate(data.hoje); accumulate(data.amanha); accumulate(data.depois);
       buildActive();
-      // Atualiza abas com dia da semana e data
       if(json.labels){
         document.getElementById('tH').textContent=json.labels.hoje;
         document.getElementById('tA').textContent=json.labels.amanha;
         document.getElementById('tD').textContent=json.labels.depois;
-        // restaura aba ativa
         document.getElementById('tH').className='tab'+(tab==='hoje'?' on':'');
         document.getElementById('tA').className='tab'+(tab==='amanha'?' on':'');
         document.getElementById('tD').className='tab'+(tab==='depois'?' on':'');
