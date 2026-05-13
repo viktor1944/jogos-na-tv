@@ -142,11 +142,12 @@
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; padding-top: 2px; }
     .gm { flex: 1; min-width: 0; }
     .gn { font-size: 15px; font-weight: 500; color: var(--text); white-space: normal; word-break: break-word; line-height: 1.3; margin-bottom: 4px; }
-    .gl-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+    /* CORRIGIDO: canal quebra linha quando longo */
+    .gl-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }
     .gl { font-size: 11px; color: var(--text3); white-space: nowrap; }
     .gl.fem { color: var(--pink); }
-    .gl-sep { font-size: 11px; color: var(--border2); }
-    .gtv { font-size: 11px; color: var(--tv-color); font-weight: 500; white-space: nowrap; }
+    .gl-sep { font-size: 11px; color: var(--border2); flex-shrink: 0; }
+    .gtv { font-size: 11px; color: var(--tv-color); font-weight: 500; white-space: normal; word-break: break-word; }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
     .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
