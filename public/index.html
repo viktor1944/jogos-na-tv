@@ -111,15 +111,27 @@
     .acc-arrow.open { transform: rotate(180deg); }
     .acc-body { display: none; padding: 12px 14px 14px; border-top: 1px solid var(--border); }
     .acc-body.open { display: block; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+
+    /* Separador entre com/sem jogos hoje */
+    .chips-divider { width: 100%; height: 1px; background: var(--border); margin: 8px 0 6px; }
+    .chips-label { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; opacity: 0.7; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
     .chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text); cursor: pointer; user-select: none; transition: all 0.1s; }
     .chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-text); }
     .chip.feminino { color: var(--pink); border-color: var(--pink-light); }
     .chip.feminino.on { background: var(--pink-light); border-color: var(--pink); color: var(--pink); }
-    .chip.noday { opacity: 0.38; }
-    .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+    /* chips sem jogo hoje ficam levemente opacos */
+    .chip.noday { opacity: 0.45; }
+    .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
     .chip.on .dot { background: var(--green); }
     .chip.feminino.on .dot { background: var(--pink); }
+    /* dot destacado para campeonatos COM jogo hoje */
+    .chip.hasday .dot { background: var(--green); box-shadow: 0 0 0 2px rgba(29,158,117,0.25); }
+    .chip.hasday { border-color: var(--green); font-weight: 600; }
+    .chip.feminino.hasday .dot { background: var(--pink); box-shadow: 0 0 0 2px rgba(233,30,140,0.25); }
+    .chip.feminino.hasday { border-color: var(--pink); }
+
     .actions { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
     .cb-row { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
     .cb-box { width: 17px; height: 17px; border-radius: 4px; border: 2px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; font-size: 11px; color: white; }
@@ -142,7 +154,6 @@
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; padding-top: 2px; }
     .gm { flex: 1; min-width: 0; }
     .gn { font-size: 15px; font-weight: 500; color: var(--text); white-space: normal; word-break: break-word; line-height: 1.3; margin-bottom: 4px; }
-    /* CORRIGIDO: canal quebra linha quando longo */
     .gl-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }
     .gl { font-size: 11px; color: var(--text3); white-space: nowrap; }
     .gl.fem { color: var(--pink); }
@@ -254,7 +265,7 @@
       <span class="acc-arrow" id="accArrow">▼</span>
     </div>
     <div class="acc-body" id="accBody">
-      <div class="chips" id="chps"></div>
+      <div id="chpsContainer"></div>
       <div class="actions">
         <div class="cb-row" id="rowAll" onclick="onAll()"><div class="cb-box" id="boxAll"></div><span>Marcar todos</span></div>
         <div class="cb-row" id="rowNone" onclick="onNone()"><div class="cb-box" id="boxNone"></div><span>Desmarcar todos</span></div>
@@ -476,7 +487,39 @@
     if(tab==='hoje'){ var c=nowMin()-240; games=games.filter(function(g){return toMin(g.time)>=c;}); }
     return games;
   }
+
   function hasToday(k){ return (data[tab]||[]).some(function(g){return norm(g.league)===k;}); }
+
+  function makeChip(k){
+    var lbl=displayLabel(k);
+    var fem=isFem(lbl);
+    var cor=getColor(lbl);
+    var isOn=active.has(k);
+    var ht=hasToday(k);
+
+    var c=document.createElement('div');
+    // classes: on/off, feminino, hasday/noday
+    var cls='chip';
+    if(isOn) cls+=' on';
+    if(fem) cls+=' feminino';
+    if(ht) cls+=' hasday'; else cls+=' noday';
+    c.className=cls;
+
+    // se tem cor e está ativo, aplica a cor
+    if(cor&&isOn){
+      c.style.background=rgba(cor,0.15);
+      c.style.borderColor=cor;
+      c.style.color=cor;
+    } else if(ht&&!isOn){
+      // tem jogo hoje mas desativado — borda destacada mesmo assim
+      c.style.borderColor=cor||'var(--green)';
+    }
+
+    var dotStyle=cor&&isOn?' style="background:'+cor+'"':'';
+    c.innerHTML='<span class="dot"'+dotStyle+'>​</span>'+(fem?lbl.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):lbl);
+    c.onclick=function(){active.has(k)?active.delete(k):active.add(k);savePref();render();};
+    return c;
+  }
 
   function render(){
     var allArr=Array.from(allSeenLeagues);
@@ -487,21 +530,58 @@
     document.getElementById('rowNone').className='cb-row'+(noneOn?' checked':''); document.getElementById('boxNone').textContent=noneOn?'✓':'';
     document.getElementById('rowNoFem').className='cb-row nofem'+(noFem?' checked':''); document.getElementById('boxNoFem').textContent=noFem?'✓':'';
 
-    var wrap=document.getElementById('leaguesWrap'),lbox=document.getElementById('chps');
-    lbox.innerHTML='';
+    var wrap=document.getElementById('leaguesWrap');
+    var container=document.getElementById('chpsContainer');
+    container.innerHTML='';
+
     if(allArr.length===0){ wrap.style.display='none'; }
     else{
       wrap.style.display='block';
       document.getElementById('lcnt').textContent=active.size+'/'+allArr.length+' selecionados';
-      allArr.slice().sort(function(a,b){ var fa=isFem(seen[a]||a),fb=isFem(seen[b]||b); if(fa&&!fb) return 1; if(!fa&&fb) return -1; var pa=pri(a),pb=pri(b); if(pa!==pb) return pa-pb; return a.localeCompare(b); }).forEach(function(k){
-        var lbl=displayLabel(k); var fem=isFem(lbl); var cor=getColor(lbl); var isOn=active.has(k); var ht=hasToday(k);
-        var c=document.createElement('div');
-        c.className='chip'+(isOn?' on':'')+(fem?' feminino':'')+(ht?'':' noday');
-        if(cor&&isOn){c.style.background=rgba(cor,0.15);c.style.borderColor=cor;c.style.color=cor;}
-        c.innerHTML='<span class="dot"'+(cor&&isOn?' style="background:'+cor+'"':'')+'>​</span>'+(fem?lbl.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):lbl);
-        c.onclick=function(){active.has(k)?active.delete(k):active.add(k);savePref();render();};
-        lbox.appendChild(c);
+
+      // Ordena por prioridade e feminino por último
+      var sorted=allArr.slice().sort(function(a,b){
+        var fa=isFem(seen[a]||a), fb=isFem(seen[b]||b);
+        if(fa&&!fb) return 1; if(!fa&&fb) return -1;
+        var pa=pri(a), pb=pri(b);
+        if(pa!==pb) return pa-pb;
+        return a.localeCompare(b);
       });
+
+      // Separa em dois grupos: COM jogo hoje e SEM jogo hoje
+      var comJogo   = sorted.filter(function(k){ return hasToday(k); });
+      var semJogo   = sorted.filter(function(k){ return !hasToday(k); });
+
+      // Grupo COM jogo hoje
+      if(comJogo.length>0){
+        var lblHoje=document.createElement('div');
+        lblHoje.className='chips-label';
+        lblHoje.textContent='🟢 Com jogo '+(['hoje','amanha','depois'].indexOf(tab)>=0 ? (tab==='hoje'?'hoje':tab==='amanha'?'amanhã':'depois de amanhã') : 'hoje');
+        container.appendChild(lblHoje);
+
+        var chipsHoje=document.createElement('div');
+        chipsHoje.className='chips';
+        comJogo.forEach(function(k){ chipsHoje.appendChild(makeChip(k)); });
+        container.appendChild(chipsHoje);
+      }
+
+      // Grupo SEM jogo hoje
+      if(semJogo.length>0){
+        if(comJogo.length>0){
+          var div=document.createElement('div');
+          div.className='chips-divider';
+          container.appendChild(div);
+        }
+        var lblOutros=document.createElement('div');
+        lblOutros.className='chips-label';
+        lblOutros.textContent='⚪ Sem jogo '+(tab==='hoje'?'hoje':tab==='amanha'?'amanhã':'depois de amanhã');
+        container.appendChild(lblOutros);
+
+        var chipsOutros=document.createElement('div');
+        chipsOutros.className='chips';
+        semJogo.forEach(function(k){ chipsOutros.appendChild(makeChip(k)); });
+        container.appendChild(chipsOutros);
+      }
     }
 
     var allGames=getTabGames().filter(function(g){ return active.has(norm(g.league||'')); });
