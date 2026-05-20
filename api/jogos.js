@@ -1,681 +1,250 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Jogos na TV · Bombacha</title>
-  <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#1D9E75"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-title" content="Bombacha"/>
-  <link rel="apple-touch-icon" href="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg"/>
-  <script>if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js'); }</script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #0F6E56; --green-text: #085041;
-      --bg: #f7f7f5; --surface: #ffffff; --surface2: #f2f1ef;
-      --border: rgba(0,0,0,0.10); --border2: rgba(0,0,0,0.18);
-      --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
-      --radius: 8px; --radius-lg: 12px;
-      --pink: #e91e8c; --pink-light: #fce4f3;
-      --red: #e53935; --tv-color: #0F6E56;
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
+
+  try {
+    var headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'pt-BR,pt;q=0.9'
+    };
+
+    var r1 = await fetch('https://mantosdofutebol.com.br/guia-de-jogos-tv-hoje-ao-vivo/', { headers });
+    var r2 = await fetch('https://mantosdofutebol.com.br/jogos-de-amanha-tv/', { headers });
+    var h1 = await r1.text();
+    var h2 = await r2.text();
+
+    function getBRT(offsetDays) {
+      var now = new Date();
+      var brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      brt.setDate(brt.getDate() + (offsetDays || 0));
+      return brt;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1c1c1a; --surface: #252522; --surface2: #2e2e2b;
-        --border: rgba(255,255,255,0.10); --border2: rgba(255,255,255,0.18);
-        --text: #f0efe8; --text2: #b4b2a9; --text3: #888780;
-        --green-light: #0a2e22; --green-text: #5DCAA5; --pink-light: #3a0a25;
-        --tv-color: #4ecba0;
+
+    function formatDate(d) {
+      return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+    }
+
+    function getDiaSemana(d) {
+      var dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+      return dias[d.getDay()];
+    }
+
+    var brtHoje   = getBRT(0);
+    var brtOntem  = getBRT(-1);
+    var brtAmanha = getBRT(1);
+    var brtDepois = getBRT(2);
+
+    var todayKey     = formatDate(brtHoje);
+    var yesterdayKey = formatDate(brtOntem);
+    var tomorrowKey  = formatDate(brtAmanha);
+    var afterKey     = formatDate(brtDepois);
+
+    var blocosHoje   = dividir(h1);
+    var blocosAmanha = dividir(h2);
+
+    var jogosHoje   = blocosHoje[todayKey]
+                   || blocosHoje[yesterdayKey]
+                   || primeiroBloco(blocosHoje)
+                   || [];
+    var jogosAmanha = blocosAmanha[tomorrowKey]
+                   || primeiroBloco(blocosAmanha)
+                   || [];
+    var jogosDepois = blocosAmanha[afterKey] || [];
+
+    if (blocosHoje[todayKey] && blocosHoje[tomorrowKey]) {
+      jogosHoje = blocosHoje[todayKey];
+    }
+
+    res.status(200).json({
+      hoje:      jogosHoje,
+      amanha:    jogosAmanha,
+      depois:    jogosDepois,
+      updatedAt: new Date().toISOString(),
+      labels: {
+        hoje:   getDiaSemana(brtHoje)   + ' · ' + todayKey,
+        amanha: getDiaSemana(brtAmanha) + ' · ' + tomorrowKey,
+        depois: getDiaSemana(brtDepois) + ' · ' + afterKey
+      },
+      debug: {
+        todayKey, yesterdayKey, tomorrowKey, afterKey,
+        datasHoje:   Object.keys(blocosHoje),
+        datasAmanha: Object.keys(blocosAmanha)
       }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+var DIAS_NUMERO = {
+  'domingo': 0, 'dom': 0,
+  'segunda': 1, 'seg': 1,
+  'terca': 2, 'terca-feira': 2,
+  'quarta': 3, 'qua': 3,
+  'quinta': 4, 'qui': 4,
+  'sexta': 5, 'sex': 5,
+  'sabado': 6, 'sab': 6
+};
+
+function normalizarTexto(t) {
+  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function diaSemanaDaString(texto) {
+  var t = normalizarTexto(texto);
+  for (var nome in DIAS_NUMERO) {
+    if (t.indexOf(nome) !== -1) return DIAS_NUMERO[nome];
+  }
+  return -1;
+}
+
+function primeiroBloco(blocos) {
+  var keys = Object.keys(blocos).filter(function(k){ return k !== '__sem_data__'; });
+  return keys.length > 0 ? blocos[keys[0]] : null;
+}
+
+function dividir(html) {
+  var resultado = {};
+  var sections  = [];
+
+  // Site coloca data quebrada em spans dentro de h2:
+  // <h2><span>Sexta – 08/0</span><span>5</span></h2>
+  // Remove tags e espaços para juntar fragmentos antes de buscar DD/MM
+  var reH2 = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
+  var m;
+
+  while ((m = reH2.exec(html)) !== null) {
+    var textoLimpo = m[1]
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, '')
+      .replace(/&#8211;/g, '–')
+      .replace(/\s+/g, '')
+      .trim();
+
+    // Procura DD/MM no texto sem espaços
+    var reData = /(\d{1,2})\/(\d{1,2})/;
+    var md     = reData.exec(textoLimpo);
+    if (!md) continue;
+
+    var dd = md[1].padStart(2,'0');
+    var mm = md[2].padStart(2,'0');
+    if (parseInt(mm) < 1 || parseInt(mm) > 12) continue;
+    if (parseInt(dd) < 1 || parseInt(dd) > 31) continue;
+
+    var key = dd + '/' + mm;
+
+    // Valida com dia da semana: constrói data e verifica se bate
+    var ano = new Date().getFullYear();
+    var dataH2 = new Date(ano, parseInt(mm)-1, parseInt(dd));
+    var diaNomeH2 = diaSemanaDaString(textoLimpo);
+
+    // Se o dia da semana não bate com a data, tenta com ano seguinte
+    if (diaNomeH2 !== -1 && dataH2.getDay() !== diaNomeH2) {
+      dataH2 = new Date(ano+1, parseInt(mm)-1, parseInt(dd));
+      // Se ainda não bate, confia na data mesmo assim
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
-    .container { max-width: 680px; margin: 0 auto; padding: 1.25rem 1rem 5rem; }
-    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; }
-    .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    h1 { font-size: 20px; font-weight: 600; }
-    .subtitle { font-size: 12px; color: var(--text3); margin-top: 1px; }
-    .bombacha-header { width: 52px; height: 52px; border-radius: 50%; border: 2.5px solid var(--green); overflow: hidden; flex-shrink: 0; box-shadow: 0 2px 8px rgba(29,158,117,0.3); transition: transform 0.2s; cursor: pointer; }
-    .bombacha-header:hover { transform: scale(1.08) rotate(-3deg); }
-    .bombacha-header img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
-    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    .icon-btn { padding: 7px 12px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background 0.15s; white-space: nowrap; }
-    .icon-btn:hover { background: var(--surface2); }
-    .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .icon-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
-    .spin { display: inline-block; animation: spin 0.7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .install-banner { display: none; background: linear-gradient(135deg,#1D9E75,#0F6E56); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 1.25rem; align-items: center; gap: 12px; }
-    .install-banner.show { display: flex; }
-    .install-banner-text { flex: 1; }
-    .install-banner-text strong { display: block; font-size: 14px; font-weight: 700; color: white; }
-    .install-banner-text span { font-size: 12px; color: rgba(255,255,255,0.8); }
-    .install-btn { padding: 8px 16px; background: white; color: var(--green-dark); border: none; border-radius: var(--radius); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-    .install-dismiss { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; flex-shrink: 0; line-height: 1; }
-    .tabs-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
-    .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
-    .tab { padding: 8px 14px; font-size: 12px; color: var(--text2); background: var(--surface); border: none; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
-    .tab.on { background: var(--surface2); color: var(--text); font-weight: 600; }
-    .banner { display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#ff6b00,#ff9500); border-radius: 20px; padding: 6px 12px 6px 10px; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 10px rgba(255,107,0,0.35); animation: pulse 2.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{box-shadow:0 2px 10px rgba(255,107,0,0.35);} 50%{box-shadow:0 2px 18px rgba(255,107,0,0.6);} }
-    .banner-text { font-size: 12px; font-weight: 700; color: white; white-space: nowrap; }
-    .banner-close { background: rgba(255,255,255,0.3); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 2px; line-height: 1; }
-    .config-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.3); }
-    .config-overlay.open { display: block; }
-    .config-dropdown { position: fixed; top: 0; right: -100%; width: min(360px,92vw); height: 100vh; background: var(--surface); z-index: 201; transition: right 0.25s cubic-bezier(.4,0,.2,1); overflow-y: auto; box-shadow: -4px 0 24px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
-    .config-dropdown.open { right: 0; }
-    .config-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .config-head h2 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
-    .config-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text2); line-height: 1; padding: 0 4px; }
-    .config-body { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
-    .cfg-sec { display: flex; flex-direction: column; gap: 10px; }
-    .cfg-sec-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
-    .fav-input-row { display: flex; gap: 8px; }
-    .fav-input { flex: 1; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); outline: none; min-width: 0; }
-    .fav-input:focus { border-color: var(--green); background: var(--surface); }
-    .fav-add { padding: 8px 12px; font-size: 13px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; flex-shrink: 0; }
-    .fav-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .fav-tag { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: #fff0f0; border: 2px solid var(--red); font-size: 12px; color: var(--red); font-weight: 600; }
-    .fav-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 15px; line-height: 1; padding: 0; margin-left: 2px; }
-    .color-row { display: flex; align-items: center; gap: 8px; }
-    .color-select { flex: 1; padding: 7px 8px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); outline: none; min-width: 0; }
-    .color-pick { width: 34px; height: 32px; border: 1px solid var(--border2); border-radius: var(--radius); cursor: pointer; padding: 2px; background: none; flex-shrink: 0; }
-    .color-add { padding: 7px 10px; font-size: 13px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
-    .color-tags { display: flex; flex-direction: column; gap: 5px; }
-    .color-tag { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); }
-    .color-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
-    .color-tag-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; min-width: 0; }
-    .color-tag-edit { width: 24px; height: 24px; border: 1px solid var(--border2); border-radius: 4px; cursor: pointer; padding: 1px; background: none; flex-shrink: 0; }
-    .remove-cor-btn { width: 22px; height: 22px; border: 2px solid var(--border2); border-radius: 4px; background: white; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text3); font-size: 11px; font-weight: 700; flex-shrink: 0; transition: all 0.12s; user-select: none; }
-    .remove-cor-btn:hover { border-color: var(--red); color: var(--red); background: #fff5f5; }
-    .reset-btn { width: 100%; padding: 11px 14px; background: #fff5f5; border: 1.5px solid rgba(229,57,53,0.4); border-radius: var(--radius); color: var(--red); font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
-    .reset-btn:hover { background: #ffebeb; }
-    .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
-    .confirm-overlay.open { display: flex; }
-    .confirm-box { background: var(--surface); border-radius: var(--radius-lg); padding: 24px 20px; width: 100%; max-width: 340px; box-shadow: 0 8px 40px rgba(0,0,0,0.25); }
-    .confirm-title { font-size: 17px; font-weight: 700; color: var(--red); margin-bottom: 8px; }
-    .confirm-msg { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
-    .confirm-btns { display: flex; gap: 10px; }
-    .confirm-cancel { flex: 1; padding: 11px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text2); font-size: 14px; cursor: pointer; font-weight: 500; }
-    .confirm-ok { flex: 1; padding: 11px; border: none; border-radius: var(--radius); background: var(--red); color: white; font-size: 14px; cursor: pointer; font-weight: 700; }
-    .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300; align-items: flex-end; justify-content: center; }
-    .popup-overlay.open { display: flex; }
-    .popup-box { background: var(--surface); border-radius: 16px 16px 0 0; padding: 20px 16px; width: 100%; max-width: 480px; animation: slideUp 0.2s ease; }
-    @keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
-    .popup-match { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-    .popup-league { font-size: 12px; color: var(--text3); margin-bottom: 16px; }
-    .popup-actions { display: flex; flex-direction: column; gap: 8px; }
-    .popup-btn { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); cursor: pointer; font-size: 14px; color: var(--text); transition: background 0.12s; justify-content: space-between; }
-    .popup-btn:hover { background: var(--border); }
-    .popup-btn-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
-    .popup-btn.danger { color: var(--red); border-color: rgba(229,57,53,0.3); background: #fff5f5; }
-    .popup-btn.danger:hover { background: #ffebeb; }
-    .popup-cancel { margin-top: 8px; width: 100%; padding: 12px; border: none; background: none; color: var(--text3); font-size: 14px; cursor: pointer; border-radius: var(--radius); }
-    .popup-cancel:hover { background: var(--surface2); }
-    .acc-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1.25rem; overflow: hidden; }
-    .acc-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; user-select: none; transition: background 0.12s; }
-    .acc-header:hover { background: rgba(0,0,0,0.03); }
-    .acc-header-left { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
-    .acc-arrow { font-size: 11px; color: var(--text3); transition: transform 0.2s; }
-    .acc-arrow.open { transform: rotate(180deg); }
-    .acc-body { display: none; padding: 12px 14px 14px; border-top: 1px solid var(--border); }
-    .acc-body.open { display: block; }
-    .chips-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; opacity: 0.85; color: var(--text3); }
-    .chips-label.verde { color: #1D9E75; }
-    .chips-label.cinza { color: var(--text3); }
-    .chips-label.oculto { color: var(--red); opacity: 1; }
-    .chips-divider { width: 100%; height: 1px; background: var(--border); margin: 10px 0 8px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
-    .chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text); cursor: pointer; user-select: none; transition: all 0.1s; }
-    .chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-text); }
-    .chip.feminino { color: var(--pink); border-color: var(--pink-light); }
-    .chip.feminino.on { background: var(--pink-light); border-color: var(--pink); color: var(--pink); }
-    .chip.noday { opacity: 0.45; }
-    .chip.hasday { border-width: 2px; font-weight: 600; }
-    .chip.removed { opacity: 0.5; border-style: dashed; border-color: var(--red); color: var(--red); }
-    .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
-    .chip.on .dot { background: var(--green); }
-    .chip.feminino.on .dot { background: var(--pink); }
-    .chip.hasday .dot { background: var(--green); box-shadow: 0 0 0 2px rgba(29,158,117,0.3); }
-    .chip.feminino.hasday .dot { background: var(--pink); box-shadow: 0 0 0 2px rgba(233,30,140,0.3); }
-    .chip.removed .dot { background: var(--red); opacity: 0.5; }
-    .actions { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .cb-row { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
-    .cb-box { width: 17px; height: 17px; border-radius: 4px; border: 2px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; font-size: 11px; color: white; }
-    .cb-row.checked .cb-box { background: var(--green); border-color: var(--green); }
-    .cb-row.nofem.checked .cb-box { background: var(--red); border-color: var(--red); }
-    .cb-row span { font-size: 13px; color: var(--text2); }
-    .cb-row.nofem span { color: var(--red); font-weight: 700; }
-    .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
-    .fav-section-label { font-size: 11px; font-weight: 600; color: var(--red); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0 4px; opacity: 0.8; }
-    .divider { height: 1px; background: var(--border); margin: 8px 0; }
-    .glist { display: flex; flex-direction: column; gap: 5px; }
-    .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
-    .gc:active { filter: brightness(0.95); }
-    .gc.favorito { border-width: 2.5px; border-color: var(--red); box-shadow: 0 4px 20px rgba(229,57,53,0.25); background: linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%); position: relative; overflow: hidden; }
-    .gc.favorito::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--red),#ff6b6b,var(--red)); background-size:200% 100%; animation:shimmer 2s linear infinite; }
-    @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
-    .gc.favorito .gt { color: var(--red) !important; font-weight: 700; }
-    .gc.favorito .gn { font-weight: 700; }
-    .fav-badge { display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:white;background:var(--red);border-radius:4px;padding:2px 7px;margin-left:6px;box-shadow:0 1px 4px rgba(229,57,53,0.4); }
-    .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; padding-top: 2px; }
-    .gm { flex: 1; min-width: 0; }
-    .gn { font-size: 15px; font-weight: 500; color: var(--text); white-space: normal; word-break: break-word; line-height: 1.3; margin-bottom: 4px; }
-    .gl-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }
-    .gl { font-size: 11px; color: var(--text3); white-space: nowrap; }
-    .gl.fem { color: var(--pink); }
-    .gl-sep { font-size: 11px; color: var(--border2); flex-shrink: 0; }
-    .gtv { font-size: 11px; color: var(--tv-color); font-weight: 500; white-space: normal; word-break: break-word; }
-    .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
-    .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-    .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
-    .error { background: #FCEBEB; border: 1px solid #F09595; border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: #791F1F; margin-bottom: 1rem; }
-    .bombacha-float { position: fixed; bottom: 22px; right: 22px; z-index: 150; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .bombacha-float-img { width: 68px; height: 68px; border-radius: 50%; border: 3px solid var(--green); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.25); transition: transform 0.2s; }
-    .bombacha-float:hover .bombacha-float-img { transform: scale(1.1) rotate(5deg); }
-    .bombacha-float-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
-    .bombacha-label { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.05em; }
-  </style>
-</head>
-<body>
 
-<div class="confirm-overlay" id="confirmOverlay">
-  <div class="confirm-box">
-    <div class="confirm-title">⚠️ Resetar o aplicativo?</div>
-    <div class="confirm-msg">Isso vai apagar todas as suas configurações: times favoritos, cores, campeonatos ocultos e preferências. O app voltará ao estado inicial.</div>
-    <div class="confirm-btns">
-      <button class="confirm-cancel" onclick="closeConfirm()">Cancelar</button>
-      <button class="confirm-ok" onclick="doReset()">Sim, resetar</button>
-    </div>
-  </div>
-</div>
+    var last = sections[sections.length - 1];
+    if (last && last.key === key) continue;
 
-<div class="config-overlay" id="overlay" onclick="closeConfig()"></div>
-<div class="config-dropdown" id="configPanel">
-  <div class="config-head">
-    <h2>⚙️ Configurações</h2>
-    <button class="config-close" onclick="closeConfig()">×</button>
-  </div>
-  <div class="config-body">
-    <div class="cfg-sec">
-      <div class="cfg-sec-title">⭐ Time favorito</div>
-      <div class="fav-input-row">
-        <input class="fav-input" id="favInput" type="text" placeholder="Ex: Flamengo..." onkeydown="if(event.key==='Enter')addFav()"/>
-        <button class="fav-add" onclick="addFav()">+ Add</button>
-      </div>
-      <div class="fav-tags" id="favTags"></div>
-    </div>
-    <div class="cfg-sec">
-      <div class="cfg-sec-title">🎨 Colorir campeonatos</div>
-      <div class="color-row">
-        <select class="color-select" id="colorSelect"><option value="">Campeonato...</option></select>
-        <input class="color-pick" type="color" id="colorPick" value="#1D9E75"/>
-        <button class="color-add" onclick="addColor()">Salvar</button>
-      </div>
-      <div class="color-tags" id="colorTags"></div>
-    </div>
-    <div class="cfg-sec">
-      <div class="cfg-sec-title">⚠️ Zona de perigo</div>
-      <button class="reset-btn" onclick="openConfirm()">🗑️ Resetar o aplicativo para as configurações iniciais</button>
-    </div>
-  </div>
-</div>
-
-<div class="popup-overlay" id="popupOverlay" onclick="closePopup()">
-  <div class="popup-box" onclick="event.stopPropagation()">
-    <div class="popup-match" id="popupMatch"></div>
-    <div class="popup-league" id="popupLeague"></div>
-    <div class="popup-actions" id="popupActions"></div>
-    <button class="popup-cancel" onclick="closePopup()">Fechar</button>
-  </div>
-</div>
-
-<div class="container">
-  <div class="header">
-    <div class="header-left">
-      <div class="bombacha-header">
-        <img src="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg" alt="Bombacha"/>
-      </div>
-      <div>
-        <h1>Jogos na TV</h1>
-        <div class="subtitle" id="updatedAt">com Bombacha ⚽</div>
-      </div>
-    </div>
-    <div class="header-right">
-      <button class="icon-btn" onclick="openConfig()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Configurações
-      </button>
-      <button class="icon-btn" id="refBtn" onclick="load()">
-        <span id="refIcon">↻</span> Atualizar
-      </button>
-    </div>
-  </div>
-
-  <div class="install-banner" id="installBanner">
-    <div style="font-size:28px;">📲</div>
-    <div class="install-banner-text">
-      <strong>Instalar como app!</strong>
-      <span>Acesse direto da tela inicial, sem digitar o link</span>
-    </div>
-    <button class="install-btn" id="installBtn">Instalar</button>
-    <button class="install-dismiss" onclick="dismissInstall()">×</button>
-  </div>
-
-  <div class="tabs-row">
-    <div class="tabs">
-      <button class="tab on" onclick="swTab('hoje')" id="tH">Hoje</button>
-      <button class="tab" onclick="swTab('amanha')" id="tA">Amanhã</button>
-      <button class="tab" onclick="swTab('depois')" id="tD">Depois de Amanhã</button>
-    </div>
-    <div class="banner" id="banner" onclick="openConfig(); closeBanner();">
-      <span style="font-size:16px;">🎨</span>
-      <span class="banner-text">Altere as cores!</span>
-      <button class="banner-close" onclick="event.stopPropagation(); closeBanner();">×</button>
-    </div>
-  </div>
-
-  <div id="errorBox" class="error" style="display:none;"></div>
-  <div id="stat" class="stat"></div>
-
-  <div class="acc-wrap" id="leaguesWrap" style="display:none;">
-    <div class="acc-header" onclick="toggleAcc()">
-      <div class="acc-header-left">
-        <span>Campeonatos que quero ver</span>
-        <span id="lcnt" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text3)"></span>
-      </div>
-      <span class="acc-arrow" id="accArrow">▼</span>
-    </div>
-    <div class="acc-body" id="accBody">
-      <div id="chpsContainer"></div>
-      <div class="actions">
-        <div class="cb-row" id="rowAll" onclick="onAll()"><div class="cb-box" id="boxAll"></div><span>Marcar todos</span></div>
-        <div class="cb-row" id="rowNone" onclick="onNone()"><div class="cb-box" id="boxNone"></div><span>Desmarcar todos</span></div>
-        <div class="cb-row nofem" id="rowNoFem" onclick="onNoFem()"><div class="cb-box" id="boxNoFem"></div><span>🚫 Não quero ver NADA de futebol feminino! 😂🧼</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="out"></div>
-</div>
-
-<div class="bombacha-float" onclick="load()" title="Atualizar">
-  <div class="bombacha-float-img">
-    <img src="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg" alt="Bombacha"/>
-  </div>
-  <div class="bombacha-label">AO VIVO</div>
-</div>
-
-<script>
-  var data={hoje:[],amanha:[],depois:[]};
-  var tab='hoje', active=new Set(), allSeenLeagues=new Set();
-  var noFem=false, favTimes=[], leagueColors={}, seen={}, removedColors={};
-  var deferredInstall=null;
-
-  window.addEventListener('beforeinstallprompt',function(e){
-    e.preventDefault(); deferredInstall=e;
-    if(!ls('install_dismissed')) document.getElementById('installBanner').classList.add('show');
-  });
-  window.addEventListener('appinstalled',function(){ document.getElementById('installBanner').classList.remove('show'); });
-  document.getElementById('installBtn').addEventListener('click',function(){
-    if(deferredInstall){ deferredInstall.prompt(); deferredInstall.userChoice.then(function(){ deferredInstall=null; document.getElementById('installBanner').classList.remove('show'); }); }
-  });
-  function dismissInstall(){ document.getElementById('installBanner').classList.remove('show'); ls('install_dismissed','1'); }
-
-  function openConfirm(){ document.getElementById('confirmOverlay').classList.add('open'); }
-  function closeConfirm(){ document.getElementById('confirmOverlay').classList.remove('open'); }
-  function doReset(){
-    try{ ['seen2','colors2','off2','removed2','favs','nofem','banner_closed','install_dismissed'].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
-    closeConfirm(); closeConfig();
-    seen={}; leagueColors={}; removedColors={}; favTimes=[]; noFem=false;
-    active=new Set(); allSeenLeagues=new Set();
-    document.getElementById('banner').style.display='';
-    load();
+    sections.push({ key: key, start: m.index });
   }
 
-  var DEFAULT_COLORS=[
-    {names:['copa do mundo','fifa world cup'], color:'#f9c000'},
-    {names:['champions league','uefa champions league'], color:'#6a1b9a'},
-    {names:['libertadores','conmebol libertadores'], color:'#00b0ff'},
-    {names:['sul-americana','sulamericana','conmebol sul-americana'], color:'#00838f'},
-    {names:['libertadores de futebol de areia'], color:'#1565c0'},
-    {names:['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'], color:'#009c3b'},
-    {names:['brasileirão série b','brasileirao serie b'], color:'#f9a825'},
-    {names:['premier league'], color:'#4a148c'},
-    {names:['la liga','laliga'], color:'#ee1d23'},
-    {names:['bundesliga'], color:'#e65100'},
-    {names:['serie a'], color:'#0277bd'},
-    {names:['copa do brasil'], color:'#558b2f'},
-    {names:['ligue 1'], color:'#283593'},
+  if (sections.length === 0) {
+    var todos  = extrair(html);
+    var grupos = cortarPorDia(todos);
+    var res    = {};
+    grupos.forEach(function(g, i){ res['dia_'+(i+1)] = g; });
+    return res;
+  }
+
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].end = (i+1 < sections.length) ? sections[i+1].start : html.length;
+  }
+
+  for (var j = 0; j < sections.length; j++) {
+    var s     = sections[j];
+    var jogos = extrair(html.substring(s.start, s.end));
+    if (!resultado[s.key]) resultado[s.key] = [];
+    resultado[s.key] = resultado[s.key].concat(jogos);
+  }
+
+  return resultado;
+}
+
+function cortarPorDia(jogos) {
+  if (!jogos.length) return [[]];
+  var grupos = [], grupoAtual = [], minAnt = toMin(jogos[0].time);
+  for (var i = 0; i < jogos.length; i++) {
+    var min = toMin(jogos[i].time);
+    if (i > 0 && min < minAnt - 180) { grupos.push(grupoAtual); grupoAtual = []; }
+    grupoAtual.push(jogos[i]);
+    if (min >= minAnt) minAnt = min;
+  }
+  if (grupoAtual.length) grupos.push(grupoAtual);
+  return grupos;
+}
+
+function toMin(t) {
+  if (!t) return 0;
+  var p = t.replace('h',':').split(':');
+  return parseInt(p[0])*60 + parseInt(p[1]||0);
+}
+
+function cleanLeague(league) {
+  if (!league) return league;
+  var l      = league.trim();
+  var paren  = l.match(/(\s*\(.*?\)\s*)$/);
+  var suffix = paren ? paren[1].trim() : '';
+  var base   = paren ? l.slice(0, l.length - paren[1].length).trim() : l;
+  var b      = base.toLowerCase();
+  var map = [
+    ['conmebol libertadores de futebol de areia', 'Libertadores de Futebol de Areia'],
+    ['conmebol libertadores',                      'Libertadores'],
+    ['conmebol sul-americana',                     'Sul-Americana'],
+    ['conmebol sudamericana',                      'Sul-Americana'],
+    ['uefa champions league',                      'Champions League'],
+    ['uefa europa league',                         'Europa League'],
+    ['uefa conference league',                     'Conference League'],
+    ['uefa nations league',                        'Nations League'],
+    ['fifa world cup',                             'Copa do Mundo'],
+    ['fifa club world cup',                        'Mundial de Clubes'],
+    ['copa conmebol libertadores',                 'Libertadores'],
   ];
-
-  function norm(n){ return (n||'').replace(/\s*\(.*?\)/g,'').trim().toLowerCase(); }
-  function capitalize(s){ if(!s) return s; return s.charAt(0).toUpperCase()+s.slice(1); }
-  function displayLabel(k){ return capitalize(seen[k]||k); }
-  function getDefaultColor(k){ for(var i=0;i<DEFAULT_COLORS.length;i++){var e=DEFAULT_COLORS[i];for(var j=0;j<e.names.length;j++) if(k===e.names[j]) return e.color;} return null; }
-  function getColor(n){ var k=norm(n); if(leagueColors[k]) return leagueColors[k]; if(removedColors[k]) return null; return getDefaultColor(k); }
-
-  var PRIORITY=['copa do mundo','mundial de clubes','champions league','libertadores de futebol de areia','libertadores','eurocopa','copa america','copa américa','brasileirao','brasileirão','serie a','série a','serie b','série b','copa do brasil','sul-americana','sulamericana','premier league','la liga','laliga','bundesliga','ligue 1'];
-  function pri(k){ for(var i=0;i<PRIORITY.length;i++) if(k.indexOf(PRIORITY[i])!==-1) return i; return 999; }
-  function isFem(n){ var k=(n||'').toLowerCase(); return k.indexOf('feminino')!==-1||k.indexOf('feminina')!==-1||k.indexOf('nwsl')!==-1; }
-  function isFavGame(ts,league){ if(!favTimes.length) return false; if(noFem&&isFem(league)) return false; var t=(ts||'').toLowerCase(); return favTimes.some(function(f){ return t.indexOf(f.toLowerCase())!==-1; }); }
-  function rgba(hex,a){ var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
-  function toMin(t){ var p=t.replace('h',':').split(':'); return parseInt(p[0])*60+parseInt(p[1]||0); }
-  function nowMin(){ var n=new Date(); return n.getHours()*60+n.getMinutes(); }
-  function getTeams(t){ return (t||'').split(/\s+x\s+/i).map(function(s){ return s.replace(/\s*(feminino|feminina)\s*/gi,'').trim(); }).filter(Boolean); }
-
-  function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){} }
-  function loadSeen(){ try{ var s=JSON.parse(ls('seen2')||'{}'); var o={}; Object.keys(s).forEach(function(k){ o[k.toLowerCase()]=s[k]; }); return o; }catch(e){return{};} }
-  function saveSeen(){ try{ls('seen2',JSON.stringify(seen));}catch(e){} }
-  function loadSaved(){ try{return JSON.parse(ls('off2')||'[]');}catch(e){return[];} }
-  function loadNoFem(){ return ls('nofem')==='true'; }
-  function loadFavs(){ try{return JSON.parse(ls('favs')||'[]');}catch(e){return[];} }
-  function loadColors(){ try{ var c=JSON.parse(ls('colors2')||'{}'); var o={}; Object.keys(c).forEach(function(k){ o[k.toLowerCase()]=c[k]; }); return o; }catch(e){return{};} }
-  function loadRemoved(){ try{ var r=JSON.parse(ls('removed2')||'{}'); var o={}; Object.keys(r).forEach(function(k){ o[k.toLowerCase()]=true; }); return o; }catch(e){return{};} }
-  function loadBannerClosed(){ return ls('banner_closed')==='true'; }
-
-  function savePref(){
-    try{
-      ls('off2',JSON.stringify(Array.from(allSeenLeagues).filter(function(k){return !active.has(k);})));
-      ls('nofem',noFem?'true':'false');
-      ls('favs',JSON.stringify(favTimes));
-      ls('colors2',JSON.stringify(leagueColors));
-      ls('removed2',JSON.stringify(removedColors));
-    }catch(e){}
-  }
-
-  function accumulate(games){
-    games.forEach(function(g){
-      if(!g.league) return;
-      var k=norm(g.league);
-      var lbl=g.league.replace(/\s*\(.*?\)/g,'').trim();
-      if(!seen[k]||lbl.length>seen[k].length) seen[k]=lbl;
-    });
-    saveSeen();
-  }
-
-  function removeColor(k){
-    k=k.toLowerCase(); delete leagueColors[k]; removedColors[k]=true;
-    saveSeen(); savePref(); renderColorSelect(); render();
-  }
-
-  function removeLeague(k){
-    k=k.toLowerCase(); delete leagueColors[k]; removedColors[k]=true; active.delete(k);
-    savePref(); renderColorSelect(); render();
-  }
-
-  function reativarLeague(k){
-    k=k.toLowerCase(); delete removedColors[k]; active.add(k);
-    savePref(); render();
-  }
-
-  function closeBanner(){ var b=document.getElementById('banner'); if(b){b.style.display='none'; ls('banner_closed','1');} }
-  function toggleAcc(){ var body=document.getElementById('accBody'),arrow=document.getElementById('accArrow'),isOpen=body.classList.contains('open'); body.className='acc-body'+(isOpen?'':' open'); arrow.className='acc-arrow'+(isOpen?'':' open'); }
-  function openConfig(){ document.getElementById('overlay').classList.add('open'); document.getElementById('configPanel').classList.add('open'); renderColorSelect(); }
-  function closeConfig(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('configPanel').classList.remove('open'); }
-
-  function openPopup(g){
-    document.getElementById('popupMatch').textContent=g.teams;
-    document.getElementById('popupLeague').textContent=g.league||'';
-    var actions=document.getElementById('popupActions'); actions.innerHTML='';
-    getTeams(g.teams).forEach(function(t){
-      if(!t) return;
-      var isFav=favTimes.some(function(f){return f.toLowerCase()===t.toLowerCase();});
-      var btn=document.createElement('div'); btn.className='popup-btn'; btn.style.justifyContent='flex-start';
-      btn.innerHTML='<span class="popup-btn-icon">'+(isFav?'💔':'⭐')+'</span><span>'+(isFav?'Remover ':'Favoritar ')+'<strong>'+t+'</strong></span>';
-      (function(tm,fav){ btn.addEventListener('click',function(){ if(fav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==tm.toLowerCase();}); else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(tm.toLowerCase())===-1) favTimes.push(tm); savePref(); renderFavTags(); render(); closePopup(); }); })(t,isFav);
-      actions.appendChild(btn);
-    });
-    var k=norm(g.league||''); var cur=getColor(g.league||'')||'#1D9E75';
-    var lbl=displayLabel(k);
-    var colorDiv=document.createElement('div'); colorDiv.className='popup-btn';
-    colorDiv.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><span class="popup-btn-icon">🎨</span><span>Cor de <strong>'+lbl+'</strong></span></div><div style="display:flex;align-items:center;gap:8px;"><div class="remove-cor-btn">&#10005;</div><input type="color" value="'+cur+'" style="width:32px;height:28px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:1px;" onclick="event.stopPropagation()"/></div>';
-    (function(key){ colorDiv.querySelector('.remove-cor-btn').addEventListener('click',function(e){ e.stopPropagation(); removeColor(key); closePopup(); }); colorDiv.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); })(k);
-    actions.appendChild(colorDiv);
-    var removeDiv=document.createElement('div'); removeDiv.className='popup-btn danger'; removeDiv.style.justifyContent='flex-start';
-    removeDiv.innerHTML='<span class="popup-btn-icon">🚫</span><span>Não quero ver <strong>'+lbl+'</strong> na minha lista <small style="color:var(--text3);font-weight:400;font-size:11px;">(para repor, acesse "Campeonatos que quero ver")</small></span>';
-    (function(key){ removeDiv.addEventListener('click',function(){ removeLeague(key); closePopup(); }); })(k);
-    actions.appendChild(removeDiv);
-    document.getElementById('popupOverlay').classList.add('open');
-  }
-
-  function closePopup(){ document.getElementById('popupOverlay').classList.remove('open'); }
-
-  function addFav(){
-    var inp=document.getElementById('favInput'),val=inp.value.trim(); if(!val) return;
-    if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(val.toLowerCase())===-1){favTimes.push(val);savePref();renderFavTags();render();}
-    inp.value='';
-  }
-  function removeFav(i){ favTimes.splice(i,1); savePref(); renderFavTags(); render(); }
-  function renderFavTags(){
-    var box=document.getElementById('favTags'); box.innerHTML='';
-    favTimes.forEach(function(f,i){ var t=document.createElement('div'); t.className='fav-tag'; t.innerHTML='⭐ '+f+'<button onclick="removeFav('+i+')">×</button>'; box.appendChild(t); });
-  }
-
-  function renderColorSelect(){
-    var sel=document.getElementById('colorSelect');
-    sel.innerHTML='<option value="">Campeonato...</option>';
-    Array.from(allSeenLeagues).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
-      var o=document.createElement('option'); o.value=k; o.textContent=displayLabel(k); sel.appendChild(o);
-    });
-    sel.onchange=function(){ document.getElementById('colorPick').value=getColor(sel.value)||'#1D9E75'; };
-    renderColorTags();
-  }
-
-  function addColor(){
-    var sel=document.getElementById('colorSelect'),pick=document.getElementById('colorPick'); if(!sel.value) return;
-    leagueColors[sel.value]=pick.value; delete removedColors[sel.value];
-    savePref(); renderColorSelect(); render();
-  }
-
-  function renderColorTags(){
-    var box=document.getElementById('colorTags'); box.innerHTML='';
-    var shown={};
-    Object.keys(leagueColors).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
-      shown[k]=true; var cor=leagueColors[k];
-      var div=document.createElement('div'); div.className='color-tag';
-      div.innerHTML='<div class="color-dot" style="background:'+cor+'"></div><span class="color-tag-name">'+displayLabel(k)+'</span><input class="color-tag-edit" type="color" value="'+cor+'"/><div class="remove-cor-btn">&#10005;</div>';
-      (function(key){ div.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(key); }); })(k);
-      box.appendChild(div);
-    });
-    Array.from(allSeenLeagues).sort(function(a,b){return pri(a)-pri(b)||a.localeCompare(b);}).forEach(function(k){
-      if(shown[k]) return;
-      var dc=getDefaultColor(k); if(!dc) return;
-      var div=document.createElement('div'); div.className='color-tag';
-      div.innerHTML='<div class="color-dot" style="background:'+dc+'"></div><span class="color-tag-name">'+displayLabel(k)+' <small style="color:var(--text3)">(padrão)</small></span><input class="color-tag-edit" type="color" value="'+dc+'"/><div class="remove-cor-btn">&#10005;</div>';
-      (function(key){ div.querySelector('input').addEventListener('change',function(e){ leagueColors[key]=e.target.value; delete removedColors[key]; savePref(); render(); }); div.querySelector('.remove-cor-btn').addEventListener('click',function(){ removeColor(key); }); })(k);
-      box.appendChild(div);
-    });
-  }
-
-  function swTab(t){
-    tab=t;
-    document.getElementById('tH').className='tab'+(t==='hoje'?' on':'');
-    document.getElementById('tA').className='tab'+(t==='amanha'?' on':'');
-    document.getElementById('tD').className='tab'+(t==='depois'?' on':'');
-    render();
-  }
-
-  function buildActive(){
-    allSeenLeagues=new Set(Object.keys(seen));
-    var off=loadSaved(); active=new Set();
-    allSeenLeagues.forEach(function(k){
-      if(off.indexOf(k)===-1 && !removedColors[k]) active.add(k);
-    });
-    if(noFem) allSeenLeagues.forEach(function(k){ if(isFem(seen[k]||k)) active.delete(k); });
-  }
-
-  function onAll(){ allSeenLeagues.forEach(function(k){ if(!noFem||!isFem(seen[k]||k)){ active.add(k); delete removedColors[k]; } }); savePref(); render(); }
-  function onNone(){ active.clear(); savePref(); render(); }
-  function onNoFem(){ noFem=!noFem; if(noFem) allSeenLeagues.forEach(function(k){ if(isFem(seen[k]||k)) active.delete(k); }); savePref(); render(); }
-  function fmtLeague(n){ return (n||'').replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'); }
-
-  function getTabGames(){
-    var games=data[tab]||[];
-    if(tab==='hoje'){ var c=nowMin()-240; games=games.filter(function(g){return toMin(g.time)>=c;}); }
-    return games;
-  }
-  function hasToday(k){ return (data[tab]||[]).some(function(g){return norm(g.league)===k;}); }
-  function tabLabel(){ if(tab==='hoje') return 'hoje'; if(tab==='amanha') return 'amanhã'; return 'depois de amanhã'; }
-
-  function makeChip(k, isRemoved){
-    var lbl=displayLabel(k);
-    var fem=isFem(lbl);
-    var cor=isRemoved?null:getColor(lbl);
-    var isOn=active.has(k);
-    var ht=hasToday(k);
-    var c=document.createElement('div');
-    c.className='chip'+(isOn?' on':'')+(fem?' feminino':'')+(isRemoved?' removed':(ht?' hasday':' noday'));
-    if(!isRemoved){
-      if(cor&&isOn){ c.style.background=rgba(cor,0.15); c.style.borderColor=cor; c.style.color=cor; }
-      else if(ht&&cor){ c.style.borderColor=cor; }
+  for (var i = 0; i < map.length; i++) {
+    if (b === map[i][0]) {
+      var inner = suffix.replace(/[()]/g,'').trim();
+      return map[i][1] + (inner ? ' ('+inner+')' : '');
     }
-    var dotStyle=(!isRemoved&&cor&&isOn)?' style="background:'+cor+'"':(!isRemoved&&ht&&cor)?' style="background:'+cor+';box-shadow:0 0 0 2px '+rgba(cor,0.3)+'"':'';
-    var lblHtml=fem?lbl.replace(/(feminino|feminina)/gi,'<span style="color:var(--pink);font-weight:600">$1</span>'):lbl;
-    if(isRemoved){
-      c.innerHTML='<span class="dot"></span>'+lblHtml;
-      c.title='Clique para reativar';
-      c.onclick=function(){ reativarLeague(k); };
+  }
+  return l;
+}
+
+function extrair(html) {
+  var jogos   = [];
+  var pattern = '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})(.+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
+  var re      = new RegExp(pattern, 'gi');
+  var m;
+  while ((m = re.exec(html)) !== null) {
+    var time   = m[1].trim();
+    var titulo = m[2].replace(/<[^>]+>/g,'').trim();
+    var tv     = m[3].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+    var partes = titulo.split('&#8211;');
+    if (partes.length === 1) partes = titulo.split('\u2013');
+    var league, teams;
+    if (partes.length >= 2) {
+      league = partes[partes.length-1].trim();
+      teams  = partes.slice(0,partes.length-1).join('\u2013').trim();
     } else {
-      c.innerHTML='<span class="dot"'+dotStyle+'></span>'+lblHtml;
-      c.onclick=function(){ active.has(k)?active.delete(k):active.add(k); savePref(); render(); };
+      league = 'Outros';
+      teams  = titulo.trim();
     }
-    return c;
+    teams  = teams.replace(/^\s*[-\u2013]\s*/,'').trim();
+    league = league.replace(/\s*[-\u2013]\s*$/,'').trim();
+    league = cleanLeague(league);
+    if (teams) jogos.push({ time, teams, league, tv });
   }
-
-  function render(){
-    var allArr=Array.from(allSeenLeagues);
-    var visAtivos=allArr.filter(function(k){return !removedColors[k];});
-    var selArr=visAtivos.filter(function(k){return !noFem||!isFem(seen[k]||k);});
-    var allOn=selArr.length>0&&selArr.every(function(k){return active.has(k);});
-    var noneOn=active.size===0&&selArr.length>0;
-    document.getElementById('rowAll').className='cb-row'+(allOn?' checked':''); document.getElementById('boxAll').textContent=allOn?'✓':'';
-    document.getElementById('rowNone').className='cb-row'+(noneOn?' checked':''); document.getElementById('boxNone').textContent=noneOn?'✓':'';
-    document.getElementById('rowNoFem').className='cb-row nofem'+(noFem?' checked':''); document.getElementById('boxNoFem').textContent=noFem?'✓':'';
-
-    var wrap=document.getElementById('leaguesWrap');
-    var container=document.getElementById('chpsContainer');
-    container.innerHTML='';
-
-    if(allArr.length===0){ wrap.style.display='none'; }
-    else{
-      wrap.style.display='block';
-      document.getElementById('lcnt').textContent=active.size+'/'+visAtivos.length+' selecionados';
-
-      var sorted=allArr.slice().sort(function(a,b){
-        var fa=isFem(seen[a]||a),fb=isFem(seen[b]||b);
-        if(fa&&!fb) return 1; if(!fa&&fb) return -1;
-        var pa=pri(a),pb=pri(b); if(pa!==pb) return pa-pb;
-        return a.localeCompare(b);
-      });
-
-      var comJogo  = sorted.filter(function(k){ return hasToday(k)&&!removedColors[k]; });
-      var ocultos  = sorted.filter(function(k){ return removedColors[k]; });
-      var semJogo  = sorted.filter(function(k){ return !hasToday(k)&&!removedColors[k]; });
-
-      // 1. COM JOGO HOJE
-      if(comJogo.length>0){
-        var l1=document.createElement('div'); l1.className='chips-label verde';
-        l1.textContent='🟢 Com jogo '+tabLabel()+(ocultos.length>0?' · reativar ocultos abaixo ↓':'');
-        container.appendChild(l1);
-        var c1=document.createElement('div'); c1.className='chips';
-        comJogo.forEach(function(k){ c1.appendChild(makeChip(k,false)); });
-        container.appendChild(c1);
-      }
-
-      // 2. OCULTOS — logo após "com jogo hoje"
-      if(ocultos.length>0){
-        var d1=document.createElement('div'); d1.className='chips-divider'; container.appendChild(d1);
-        var l2=document.createElement('div'); l2.className='chips-label oculto';
-        l2.textContent='🔴 Ocultos — clique para reativar';
-        container.appendChild(l2);
-        var c2=document.createElement('div'); c2.className='chips';
-        ocultos.forEach(function(k){ c2.appendChild(makeChip(k,true)); });
-        container.appendChild(c2);
-      }
-
-      // 3. SEM JOGO HOJE
-      if(semJogo.length>0){
-        var d2=document.createElement('div'); d2.className='chips-divider'; container.appendChild(d2);
-        var l3=document.createElement('div'); l3.className='chips-label cinza';
-        l3.textContent='⚪ Sem jogo '+tabLabel();
-        container.appendChild(l3);
-        var c3=document.createElement('div'); c3.className='chips';
-        semJogo.forEach(function(k){ c3.appendChild(makeChip(k,false)); });
-        container.appendChild(c3);
-      }
-    }
-
-    var allGames=getTabGames().filter(function(g){ return active.has(norm(g.league||'')); });
-    var favGames=allGames.filter(function(g){ return isFavGame(g.teams,g.league); }).sort(function(a,b){ return toMin(a.time)-toMin(b.time); });
-    var otherGames=allGames.filter(function(g){ return !isFavGame(g.teams,g.league); }).sort(function(a,b){ return toMin(a.time)-toMin(b.time); });
-
-    document.getElementById('stat').textContent=allGames.length+' jogo'+(allGames.length!==1?'s':'');
-    if(!allGames.length){ document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>'; return; }
-
-    window.filteredGames=favGames.concat(otherGames);
-    var h='<div class="glist">';
-    function gameHtml(g,idx){
-      var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||'');
-      var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;';
-      var leagueDisplay=capitalize(g.league||'');
-      return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+
-        '<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div>'+
-        '<div class="gm"><div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div>'+
-        '<div class="gl-row"><span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(leagueDisplay)+'</span>'+
-        (g.tv?'<span class="gl-sep">·</span><span class="gtv">'+g.tv+'</span>':'')+
-        '</div></div></div>';
-    }
-    if(favGames.length>0){
-      h+='<div class="fav-section-label">⭐ Meu time</div>';
-      favGames.forEach(function(g,i){ h+=gameHtml(g,i); });
-      if(otherGames.length>0) h+='<div class="divider"></div>';
-    }
-    otherGames.forEach(function(g,i){ h+=gameHtml(g,favGames.length+i); });
-    h+='</div>';
-    document.getElementById('out').innerHTML=h;
-  }
-
-  async function load(){
-    var btn=document.getElementById('refBtn'),icon=document.getElementById('refIcon');
-    btn.disabled=true; icon.className='spin';
-    document.getElementById('errorBox').style.display='none';
-    document.getElementById('out').innerHTML='<div class="loading"><div class="loading-spinner"></div><div>Bombacha buscando os jogos...</div></div>';
-    document.getElementById('leaguesWrap').style.display='none';
-    document.getElementById('stat').textContent='';
-    try{
-      var res=await fetch('/api/jogos'); if(!res.ok) throw new Error('Erro '+res.status);
-      var json=await res.json();
-      data.hoje=json.hoje||[]; data.amanha=json.amanha||[]; data.depois=json.depois||[];
-      noFem=loadNoFem(); favTimes=loadFavs(); leagueColors=loadColors();
-      removedColors=loadRemoved(); seen=loadSeen();
-      accumulate(data.hoje); accumulate(data.amanha); accumulate(data.depois);
-      buildActive();
-      if(json.labels){
-        document.getElementById('tH').textContent=json.labels.hoje;
-        document.getElementById('tA').textContent=json.labels.amanha;
-        document.getElementById('tD').textContent=json.labels.depois;
-        document.getElementById('tH').className='tab'+(tab==='hoje'?' on':'');
-        document.getElementById('tA').className='tab'+(tab==='amanha'?' on':'');
-        document.getElementById('tD').className='tab'+(tab==='depois'?' on':'');
-      }
-      if(json.updatedAt){ var d=new Date(json.updatedAt); document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
-      if(loadBannerClosed()) document.getElementById('banner').style.display='none';
-      renderFavTags(); render();
-      document.getElementById('accBody').className='acc-body';
-      document.getElementById('accArrow').className='acc-arrow';
-    }catch(e){
-      document.getElementById('out').innerHTML='';
-      document.getElementById('errorBox').style.display='block';
-      document.getElementById('errorBox').textContent='Erro ao buscar jogos: '+e.message;
-    }
-    btn.disabled=false; icon.className='';
-  }
-
-  load();
-  setInterval(load,30*60*1000);
-  setInterval(render,5*60*1000);
-</script>
-</body>
-</html>
+  return jogos;
+}
