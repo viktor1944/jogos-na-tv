@@ -121,26 +121,37 @@
     .acc-arrow.open { transform: rotate(180deg); }
     .acc-body { display: none; padding: 12px 14px 14px; border-top: 1px solid var(--border); }
     .acc-body.open { display: block; }
-    .chips-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; opacity: 0.85; color: var(--text3); }
-    .chips-label.verde { color: #1D9E75; }
+
+    /* ── Seções de campeonatos ── */
+    .sec-comjogo { margin-bottom: 2px; }
+    .sec-ocultos { background: rgba(229,57,53,0.04); border: 1px dashed rgba(229,57,53,0.25); border-radius: var(--radius); padding: 8px 10px; margin: 8px 0; }
+    .sec-semjogo { background: rgba(0,0,0,0.03); border-radius: var(--radius); padding: 8px 10px; margin-top: 8px; opacity: 0.7; }
+    @media (prefers-color-scheme: dark) {
+      .sec-semjogo { background: rgba(255,255,255,0.03); }
+      .sec-ocultos { background: rgba(229,57,53,0.06); }
+    }
+
+    .chips-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; display: flex; align-items: center; gap: 5px; }
+    .chips-label.verde { color: var(--green-dark); }
     .chips-label.cinza { color: var(--text3); }
-    .chips-label.oculto { color: var(--red); opacity: 1; }
-    .chips-divider { width: 100%; height: 1px; background: var(--border); margin: 10px 0 8px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+    .chips-label.oculto { color: var(--red); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text); cursor: pointer; user-select: none; transition: all 0.1s; }
     .chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-text); }
     .chip.feminino { color: var(--pink); border-color: var(--pink-light); }
     .chip.feminino.on { background: var(--pink-light); border-color: var(--pink); color: var(--pink); }
-    .chip.noday { opacity: 0.45; }
     .chip.hasday { border-width: 2px; font-weight: 600; }
-    .chip.removed { opacity: 0.5; border-style: dashed; border-color: var(--red); color: var(--red); }
+    .chip.noday { } /* sem opacidade extra, a seção já tem */
+    .chip.removed { border-style: dashed; border-color: var(--red); color: var(--red); background: rgba(229,57,53,0.05); }
     .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
     .chip.on .dot { background: var(--green); }
     .chip.feminino.on .dot { background: var(--pink); }
     .chip.hasday .dot { background: var(--green); box-shadow: 0 0 0 2px rgba(29,158,117,0.3); }
     .chip.feminino.hasday .dot { background: var(--pink); box-shadow: 0 0 0 2px rgba(233,30,140,0.3); }
-    .chip.removed .dot { background: var(--red); opacity: 0.5; }
-    .actions { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .chip.removed .dot { background: var(--red); opacity: 0.6; }
+
+    .actions { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 10px; }
     .cb-row { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
     .cb-box { width: 17px; height: 17px; border-radius: 4px; border: 2px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; font-size: 11px; color: white; }
     .cb-row.checked .cb-box { background: var(--green); border-color: var(--green); }
@@ -399,12 +410,10 @@
     k=k.toLowerCase(); delete leagueColors[k]; removedColors[k]=true;
     saveSeen(); savePref(); renderColorSelect(); render();
   }
-
   function removeLeague(k){
     k=k.toLowerCase(); delete leagueColors[k]; removedColors[k]=true; active.delete(k);
     savePref(); renderColorSelect(); render();
   }
-
   function reativarLeague(k){
     k=k.toLowerCase(); delete removedColors[k]; active.add(k);
     savePref(); render();
@@ -544,6 +553,16 @@
     return c;
   }
 
+  function addSection(container, cls, labelCls, labelTxt, keys, isRemoved){
+    var wrap=document.createElement('div'); wrap.className=cls;
+    var lbl=document.createElement('div'); lbl.className='chips-label '+labelCls; lbl.textContent=labelTxt;
+    wrap.appendChild(lbl);
+    var chips=document.createElement('div'); chips.className='chips';
+    keys.forEach(function(k){ chips.appendChild(makeChip(k,isRemoved||false)); });
+    wrap.appendChild(chips);
+    container.appendChild(wrap);
+  }
+
   function render(){
     var allArr=Array.from(allSeenLeagues);
     var visAtivos=allArr.filter(function(k){return !removedColors[k];});
@@ -570,40 +589,30 @@
         return a.localeCompare(b);
       });
 
-      var comJogo  = sorted.filter(function(k){ return hasToday(k)&&!removedColors[k]; });
-      var ocultos  = sorted.filter(function(k){ return removedColors[k]; });
-      var semJogo  = sorted.filter(function(k){ return !hasToday(k)&&!removedColors[k]; });
+      var comJogo = sorted.filter(function(k){ return hasToday(k)&&!removedColors[k]; });
+      // ocultos divididos: com jogo hoje e sem jogo hoje
+      var ocultosCom = sorted.filter(function(k){ return removedColors[k]&&hasToday(k); });
+      var ocultosSem = sorted.filter(function(k){ return removedColors[k]&&!hasToday(k); });
+      var semJogo = sorted.filter(function(k){ return !hasToday(k)&&!removedColors[k]; });
 
       // 1. COM JOGO HOJE
       if(comJogo.length>0){
-        var l1=document.createElement('div'); l1.className='chips-label verde';
-        l1.textContent='🟢 Com jogo '+tabLabel()+(ocultos.length>0?' · reativar ocultos abaixo ↓':'');
-        container.appendChild(l1);
-        var c1=document.createElement('div'); c1.className='chips';
-        comJogo.forEach(function(k){ c1.appendChild(makeChip(k,false)); });
-        container.appendChild(c1);
+        addSection(container,'sec-comjogo','verde','🟢 Com jogo '+tabLabel(),comJogo,false);
       }
 
-      // 2. OCULTOS — logo após "com jogo hoje"
-      if(ocultos.length>0){
-        var d1=document.createElement('div'); d1.className='chips-divider'; container.appendChild(d1);
-        var l2=document.createElement('div'); l2.className='chips-label oculto';
-        l2.textContent='🔴 Ocultos — clique para reativar';
-        container.appendChild(l2);
-        var c2=document.createElement('div'); c2.className='chips';
-        ocultos.forEach(function(k){ c2.appendChild(makeChip(k,true)); });
-        container.appendChild(c2);
+      // 2. OCULTOS COM JOGO HOJE — logo abaixo dos ativos
+      if(ocultosCom.length>0){
+        addSection(container,'sec-ocultos','oculto','🔴 Ocultos com jogos '+tabLabel()+' — clique para reativar',ocultosCom,true);
       }
 
-      // 3. SEM JOGO HOJE
+      // 3. OCULTOS SEM JOGO HOJE
+      if(ocultosSem.length>0){
+        addSection(container,'sec-ocultos','oculto','🔴 Ocultos sem jogos '+tabLabel()+' — clique para reativar',ocultosSem,true);
+      }
+
+      // 4. SEM JOGO HOJE — fundo acinzentado/desativado
       if(semJogo.length>0){
-        var d2=document.createElement('div'); d2.className='chips-divider'; container.appendChild(d2);
-        var l3=document.createElement('div'); l3.className='chips-label cinza';
-        l3.textContent='⚪ Sem jogo '+tabLabel();
-        container.appendChild(l3);
-        var c3=document.createElement('div'); c3.className='chips';
-        semJogo.forEach(function(k){ c3.appendChild(makeChip(k,false)); });
-        container.appendChild(c3);
+        addSection(container,'sec-semjogo','cinza','⚪ Sem jogo '+tabLabel(),semJogo,false);
       }
     }
 
