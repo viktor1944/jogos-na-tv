@@ -78,28 +78,6 @@ module.exports = async function handler(req, res) {
   }
 };
 
-var DIAS_NUMERO = {
-  'domingo': 0, 'dom': 0,
-  'segunda': 1, 'seg': 1,
-  'terca': 2, 'terca-feira': 2,
-  'quarta': 3, 'qua': 3,
-  'quinta': 4, 'qui': 4,
-  'sexta': 5, 'sex': 5,
-  'sabado': 6, 'sab': 6
-};
-
-function normalizarTexto(t) {
-  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-}
-
-function diaSemanaDaString(texto) {
-  var t = normalizarTexto(texto);
-  for (var nome in DIAS_NUMERO) {
-    if (t.indexOf(nome) !== -1) return DIAS_NUMERO[nome];
-  }
-  return -1;
-}
-
 function primeiroBloco(blocos) {
   var keys = Object.keys(blocos).filter(function(k){ return k !== '__sem_data__'; });
   return keys.length > 0 ? blocos[keys[0]] : null;
@@ -109,8 +87,7 @@ function dividir(html) {
   var resultado = {};
   var sections  = [];
 
-  // Site coloca data quebrada em spans dentro de h2:
-  // <h2><span>Sexta – 08/0</span><span>5</span></h2>
+  // Site quebra data em spans: <h2><span>Sexta – 08/0</span><span>5</span></h2>
   // Remove tags e espaços para juntar fragmentos antes de buscar DD/MM
   var reH2 = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
   var m;
@@ -123,7 +100,6 @@ function dividir(html) {
       .replace(/\s+/g, '')
       .trim();
 
-    // Procura DD/MM no texto sem espaços
     var reData = /(\d{1,2})\/(\d{1,2})/;
     var md     = reData.exec(textoLimpo);
     if (!md) continue;
@@ -133,19 +109,7 @@ function dividir(html) {
     if (parseInt(mm) < 1 || parseInt(mm) > 12) continue;
     if (parseInt(dd) < 1 || parseInt(dd) > 31) continue;
 
-    var key = dd + '/' + mm;
-
-    // Valida com dia da semana: constrói data e verifica se bate
-    var ano = new Date().getFullYear();
-    var dataH2 = new Date(ano, parseInt(mm)-1, parseInt(dd));
-    var diaNomeH2 = diaSemanaDaString(textoLimpo);
-
-    // Se o dia da semana não bate com a data, tenta com ano seguinte
-    if (diaNomeH2 !== -1 && dataH2.getDay() !== diaNomeH2) {
-      dataH2 = new Date(ano+1, parseInt(mm)-1, parseInt(dd));
-      // Se ainda não bate, confia na data mesmo assim
-    }
-
+    var key  = dd + '/' + mm;
     var last = sections[sections.length - 1];
     if (last && last.key === key) continue;
 
@@ -223,28 +187,35 @@ function cleanLeague(league) {
 }
 
 function extrair(html) {
-  var jogos   = [];
-  var pattern = '<h3[^>]*>\\s*<strong>(\\d{1,2}h\\d{2})(.+?)<\\/strong>\\s*<\\/h3>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
+  var jogos = [];
+  // CORRIGIDO: aceita span ou outras tags antes do <strong> dentro do <h3>
+  var pattern = '<h3[^>]*>[\\s\\S]{0,50}<strong>(\\d{1,2}h\\d{2})(.+?)<\\/strong>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
   var re      = new RegExp(pattern, 'gi');
   var m;
+
   while ((m = re.exec(html)) !== null) {
     var time   = m[1].trim();
-    var titulo = m[2].replace(/<[^>]+>/g,'').trim();
-    var tv     = m[3].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+    var titulo = m[2].replace(/<[^>]+>/g, '').trim();
+    var tv     = m[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
     var partes = titulo.split('&#8211;');
     if (partes.length === 1) partes = titulo.split('\u2013');
+
     var league, teams;
     if (partes.length >= 2) {
-      league = partes[partes.length-1].trim();
-      teams  = partes.slice(0,partes.length-1).join('\u2013').trim();
+      league = partes[partes.length - 1].trim();
+      teams  = partes.slice(0, partes.length - 1).join('\u2013').trim();
     } else {
       league = 'Outros';
       teams  = titulo.trim();
     }
-    teams  = teams.replace(/^\s*[-\u2013]\s*/,'').trim();
-    league = league.replace(/\s*[-\u2013]\s*$/,'').trim();
+
+    teams  = teams.replace(/^\s*[-\u2013]\s*/, '').trim();
+    league = league.replace(/\s*[-\u2013]\s*$/, '').trim();
     league = cleanLeague(league);
+
     if (teams) jogos.push({ time, teams, league, tv });
   }
+
   return jogos;
 }
