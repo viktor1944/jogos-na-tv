@@ -20,6 +20,7 @@
       --radius: 8px; --radius-lg: 12px;
       --pink: #e91e8c; --pink-light: #fce4f3;
       --red: #e53935; --tv-color: #0F6E56;
+      --fav-bg-1: #fff5f5; --fav-bg-2: #fff0f0;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -28,6 +29,7 @@
         --text: #f0efe8; --text2: #b4b2a9; --text3: #888780;
         --green-light: #0a2e22; --green-text: #5DCAA5; --pink-light: #3a0a25;
         --tv-color: #4ecba0;
+        --fav-bg-1: #2a0a0a; --fav-bg-2: #220808;
       }
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
@@ -142,7 +144,7 @@
     .chip.feminino { color: var(--pink); border-color: var(--pink-light); }
     .chip.feminino.on { background: var(--pink-light); border-color: var(--pink); color: var(--pink); }
     .chip.hasday { border-width: 2px; font-weight: 600; }
-    .chip.noday { } /* sem opacidade extra, a seção já tem */
+    .chip.noday { }
     .chip.removed { border-style: dashed; border-color: var(--red); color: var(--red); background: rgba(229,57,53,0.05); }
     .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
     .chip.on .dot { background: var(--green); }
@@ -164,7 +166,16 @@
     .glist { display: flex; flex-direction: column; gap: 5px; }
     .gc { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: filter 0.12s; min-width: 0; overflow: hidden; }
     .gc:active { filter: brightness(0.95); }
-    .gc.favorito { border-width: 2.5px; border-color: var(--red); box-shadow: 0 4px 20px rgba(229,57,53,0.25); background: linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%); position: relative; overflow: hidden; }
+
+    /* ── FAVORITO: usa variáveis para funcionar no dark mode ── */
+    .gc.favorito {
+      border-width: 2.5px;
+      border-color: var(--red);
+      box-shadow: 0 4px 20px rgba(229,57,53,0.25);
+      background: linear-gradient(135deg, var(--fav-bg-1) 0%, var(--fav-bg-2) 100%);
+      position: relative;
+      overflow: hidden;
+    }
     .gc.favorito::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--red),#ff6b6b,var(--red)); background-size:200% 100%; animation:shimmer 2s linear infinite; }
     @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
     .gc.favorito .gt { color: var(--red) !important; font-weight: 700; }
@@ -590,27 +601,19 @@
       });
 
       var comJogo = sorted.filter(function(k){ return hasToday(k)&&!removedColors[k]; });
-      // ocultos divididos: com jogo hoje e sem jogo hoje
       var ocultosCom = sorted.filter(function(k){ return removedColors[k]&&hasToday(k); });
       var ocultosSem = sorted.filter(function(k){ return removedColors[k]&&!hasToday(k); });
       var semJogo = sorted.filter(function(k){ return !hasToday(k)&&!removedColors[k]; });
 
-      // 1. COM JOGO HOJE
       if(comJogo.length>0){
         addSection(container,'sec-comjogo','verde','🟢 Com jogo '+tabLabel(),comJogo,false);
       }
-
-      // 2. OCULTOS COM JOGO HOJE — logo abaixo dos ativos
       if(ocultosCom.length>0){
         addSection(container,'sec-ocultos','oculto','🔴 Ocultos com jogos '+tabLabel()+' — clique para reativar',ocultosCom,true);
       }
-
-      // 3. OCULTOS SEM JOGO HOJE
       if(ocultosSem.length>0){
         addSection(container,'sec-ocultos','oculto','🔴 Ocultos sem jogos '+tabLabel()+' — clique para reativar',ocultosSem,true);
       }
-
-      // 4. SEM JOGO HOJE — fundo acinzentado/desativado
       if(semJogo.length>0){
         addSection(container,'sec-semjogo','cinza','⚪ Sem jogo '+tabLabel(),semJogo,false);
       }
