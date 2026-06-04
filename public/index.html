@@ -381,8 +381,6 @@
 
 <button class="chimmarrao-btn" onclick="openDoar()">🧉 Me ajude com um chimarrão!</button>
 
-<div class="bombacha-float" onclick="load()" title="Atualizar">
-  <div class="bombacha-float-img"><img src="https://i.ibb.co/205HWkcP/photo-2026-04-27-02-41-19.jpg" alt="Bombacha"/></div>
   <div class="bombacha-label">AO VIVO</div>
 </div>
 
@@ -492,7 +490,7 @@
       var isFav=favTimes.some(function(f){return f.toLowerCase()===t.toLowerCase();});
       var btn=document.createElement('div'); btn.className='popup-btn'; btn.style.justifyContent='flex-start';
       btn.innerHTML='<span class="popup-btn-icon">'+(isFav?'💔':'⭐')+'</span><span>'+(isFav?'Remover ':'Favoritar ')+'<strong>'+t+'</strong></span>';
-      (function(tm,fav){ btn.addEventListener('click',function(){ if(fav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==tm.toLowerCase();}); else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(tm.toLowerCase())===-1) favTimes.push(tm); savePref(); renderFavTags(); render(); closePopup(); }); })(t,isFav);
+      (function(tm,fav){ btn.addEventListener('click',function(){ if(fav) favTimes=favTimes.filter(function(f){return f.toLowerCase()!==tm.toLowerCase();}); else if(favTimes.map(function(f){return f.toLowerCase();}).indexOf(tm.toLowerCase())===-1) favTimes.push(tm); savePref(); renderFavTags(); render(); try{ var el=document.getElementById('out'); if(el) el.scrollIntoView({behavior:'smooth'}); }catch(e){} closePopup(); }); })(t,isFav);
       actions.appendChild(btn);
     });
     var kk=norm(g.league||''); var cur=getColor(g.league||'')||'#1D9E75'; var lbl=displayLabel(kk);
@@ -546,7 +544,7 @@
     if(!allGames.length){ document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>'; return; }
     window.filteredGames=favGames.concat(otherGames);
     var h='<div class="glist">';
-    function gameHtml(g,idx){ var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||''); var kk=alertaKey(g); var temAlerta=!!alertas[kk]; var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;'; var ld=capitalize(g.league||''); return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+(temAlerta?'<span class="bell-badge">🔔</span>':'')+'<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div><div class="gm"><div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div><div class="gl-row"><span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+fmtLeague(ld)+'</span>'+(g.tv?'<span class="gl-sep">·</span><span class="gtv">'+g.tv+'</span>':'')+' </div></div></div>'; }
+    function gameHtml(g,idx){ var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||''); var kk=alertaKey(g); var temAlerta=!!alertas[kk]; var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;'; var ld=capitalize(g.league||''); var femBadge=fem?'<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:white;background:var(--pink);border-radius:4px;padding:1px 6px;margin-left:5px;">(Feminino)</span>':''; return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+(temAlerta?'<span class="bell-badge">🔔</span>':'')+'<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div><div class="gm"><div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div><div class="gl-row"><span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+ld+'</span>'+femBadge+(g.tv?'<span class="gl-sep">·</span><span class="gtv">'+g.tv+'</span>':'')+' </div></div></div>'; }
     if(favGames.length>0){ h+='<div class="fav-section-label">⭐ Meu time</div>'; favGames.forEach(function(g,i){ h+=gameHtml(g,i); }); if(otherGames.length>0) h+='<div class="divider"></div>'; }
     otherGames.forEach(function(g,i){ h+=gameHtml(g,favGames.length+i); });
     h+='</div>'; document.getElementById('out').innerHTML=h;
