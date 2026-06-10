@@ -163,6 +163,24 @@
     @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
     .gc.favorito .gt { color: var(--red) !important; font-weight: 700; }
     .gc.favorito .gn { font-weight: 700; }
+
+    /* Copa do Mundo — destaque especial */
+    .gc.copa-mundo {
+      background: linear-gradient(135deg, rgba(200,164,0,0.08) 0%, rgba(255,215,0,0.05) 100%) !important;
+      border-color: #c8a400 !important;
+      border-width: 2px !important;
+      box-shadow: 0 2px 12px rgba(200,164,0,0.2);
+    }
+    .gc.copa-mundo::after {
+      content: '🏆';
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+    .gc.copa-mundo .gt { color: #c8a400 !important; }
+    .gc.copa-mundo .gl { color: #c8a400 !important; opacity: 0.9; }
     .bell-badge { position:absolute; top:8px; right:10px; font-size:14px; opacity:0.85; }
     .fav-badge { display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:white;background:var(--red);border-radius:4px;padding:2px 7px;margin-left:6px;box-shadow:0 1px 4px rgba(229,57,53,0.4); }
     .gt { font-size: 13px; font-weight: 600; color: var(--green-dark); min-width: 38px; flex-shrink: 0; padding-top: 2px; }
@@ -545,7 +563,11 @@
     if(!allGames.length){ document.getElementById('out').innerHTML='<div class="empty">Nenhum jogo para os campeonatos selecionados.</div>'; return; }
     window.filteredGames=favGames.concat(otherGames);
     var h='<div class="glist">';
-    function gameHtml(g,idx){ var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||''); var kk=alertaKey(g); var temAlerta=!!alertas[kk]; var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;'; var ld=capitalize(g.league||''); var femBadge=fem?'<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:white;background:var(--pink);border-radius:4px;padding:1px 6px;margin-left:5px;">(Feminino)</span>':''; return '<div class="gc'+(fav?' favorito':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+(temAlerta?'<span class="bell-badge">🔔</span>':'')+'<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div><div class="gm"><div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div><div class="gl-row"><span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+ld+'</span>'+femBadge+(g.tv?'<span class="gl-sep">·</span><span class="gtv">'+g.tv+'</span>':'')+' </div></div></div>'; }
+    function isCopaMundo(league){
+      var k=(league||'').toLowerCase();
+      return k.indexOf('copa do mundo')!==-1||k.indexOf('world cup')!==-1||k.indexOf('fifa 2026')!==-1||k.indexOf('copa 2026')!==-1;
+    }
+    function gameHtml(g,idx){ var fem=isFem(g.league||''),fav=isFavGame(g.teams,g.league),cor=getColor(g.league||''); var kk=alertaKey(g); var temAlerta=!!alertas[kk]; var style=''; if(!fav&&cor) style='background:'+rgba(cor,0.07)+';border-color:'+cor+';border-width:2px;'; var ld=capitalize(g.league||''); var femBadge=fem?'<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:white;background:var(--pink);border-radius:4px;padding:1px 6px;margin-left:5px;">(Feminino)</span>':''; var isCopa=isCopaMundo(g.league||''); return '<div class="gc'+(fav?' favorito':'')+(isCopa&&!fav?' copa-mundo':'')+'"'+(style?' style="'+style+'"':'')+' onclick="openPopup(filteredGames['+idx+'])">'+(temAlerta?'<span class="bell-badge">🔔</span>':'')+'<div class="gt"'+(cor&&!fav?' style="color:'+cor+'"':'')+'>'+g.time+'</div><div class="gm"><div class="gn">'+g.teams+(fav?'<span class="fav-badge">⭐ MEU TIME</span>':'')+'</div><div class="gl-row"><span class="gl'+(fem?' fem':'')+'"'+(cor&&!fav?' style="color:'+cor+';opacity:0.85"':'')+'>'+ld+'</span>'+femBadge+(g.tv?'<span class="gl-sep">·</span><span class="gtv">'+g.tv+'</span>':'')+' </div></div></div>'; }
     if(favGames.length>0){ h+='<div class="fav-section-label">⭐ Meu time</div>'; favGames.forEach(function(g,i){ h+=gameHtml(g,i); }); if(otherGames.length>0) h+='<div class="divider"></div>'; }
     otherGames.forEach(function(g,i){ h+=gameHtml(g,favGames.length+i); });
     h+='</div>'; document.getElementById('out').innerHTML=h;
