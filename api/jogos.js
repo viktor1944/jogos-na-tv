@@ -31,27 +31,42 @@ module.exports = async function handler(req, res) {
     }
 
     var brtHoje   = getBRT(0);
-    var brtOntem  = getBRT(-1);
     var brtAmanha = getBRT(1);
     var brtDepois = getBRT(2);
 
-    var todayKey     = formatDate(brtHoje);
-    var yesterdayKey = formatDate(brtOntem);
-    var tomorrowKey  = formatDate(brtAmanha);
-    var afterKey     = formatDate(brtDepois);
+    var todayKey   = formatDate(brtHoje);
+    var tomorrowKey = formatDate(brtAmanha);
+    var afterKey    = formatDate(brtDepois);
 
     var blocosHoje   = dividir(h1);
     var blocosAmanha = dividir(h2);
 
-    var jogosHoje   = blocosHoje[todayKey]
-                   || blocosHoje[yesterdayKey]
-                   || primeiroBloco(blocosHoje)
-                   || [];
+    // ── LÓGICA CORRIGIDA ──
+    // Após meia-noite o site fonte pode ainda mostrar o dia anterior.
+    // Regra: só aceitar ontem se for antes das 4h da manhã E o bloco de hoje não existir.
+    var horaAtual = brtHoje.getHours();
+    var brtOntem  = getBRT(-1);
+    var yesterdayKey = formatDate(brtOntem);
+
+    var jogosHoje;
+    if (blocosHoje[todayKey]) {
+      // Site já atualizou para hoje — usar direto
+      jogosHoje = blocosHoje[todayKey];
+    } else if (horaAtual < 4 && blocosHoje[yesterdayKey]) {
+      // Antes das 4h e site ainda mostra ontem — buscar na página de amanhã
+      // pois o "amanhã" do site é o nosso "hoje" após meia-noite
+      jogosHoje = blocosAmanha[todayKey] || [];
+    } else {
+      // Fallback normal
+      jogosHoje = primeiroBloco(blocosHoje) || [];
+    }
+
     var jogosAmanha = blocosAmanha[tomorrowKey]
                    || primeiroBloco(blocosAmanha)
                    || [];
     var jogosDepois = blocosAmanha[afterKey] || [];
 
+    // Se hoje e amanhã estão ambos na página de hoje, separar
     if (blocosHoje[todayKey] && blocosHoje[tomorrowKey]) {
       jogosHoje = blocosHoje[todayKey];
     }
@@ -68,6 +83,7 @@ module.exports = async function handler(req, res) {
       },
       debug: {
         todayKey, yesterdayKey, tomorrowKey, afterKey,
+        horaAtual,
         datasHoje:   Object.keys(blocosHoje),
         datasAmanha: Object.keys(blocosAmanha)
       }
@@ -87,8 +103,6 @@ function dividir(html) {
   var resultado = {};
   var sections  = [];
 
-  // Site quebra data em spans: <h2><span>Sexta – 08/0</span><span>5</span></h2>
-  // Remove tags e espaços para juntar fragmentos antes de buscar DD/MM
   var reH2 = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
   var m;
 
@@ -188,7 +202,6 @@ function cleanLeague(league) {
 
 function extrair(html) {
   var jogos = [];
-  // CORRIGIDO: aceita span ou outras tags antes do <strong> dentro do <h3>
   var pattern = '<h3[^>]*>[\\s\\S]{0,50}<strong>(\\d{1,2}h\\d{2})(.+?)<\\/strong>[\\s\\S]{0,400}?<strong>Canais?:\\s*(.+?)<\\/strong>';
   var re      = new RegExp(pattern, 'gi');
   var m;
