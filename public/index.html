@@ -152,6 +152,16 @@
     .cb-row.nofem.checked .cb-box { background: var(--red); border-color: var(--red); }
     .cb-row span { font-size: 13px; color: var(--text2); }
     .cb-row.nofem span { color: var(--red); font-weight: 700; }
+
+    /* Badges extensão */
+    .ext-row { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .ext-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-decoration: none; border: 1.5px solid; transition: all 0.15s; white-space: nowrap; }
+    .ext-badge:hover { transform: scale(1.04); }
+    .ext-badge.firefox { background: rgba(255,107,0,0.08); border-color: rgba(255,107,0,0.4); color: #c44f00; }
+    .ext-badge.firefox:hover { background: rgba(255,107,0,0.15); }
+    .ext-badge.chrome { background: rgba(66,133,244,0.08); border-color: rgba(66,133,244,0.4); color: #1a56c4; }
+    .ext-badge.chrome:hover { background: rgba(66,133,244,0.15); }
+    .ext-label { font-size: 10px; color: var(--text3); }
     .stat { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
     .fav-section-label { font-size: 11px; font-weight: 600; color: var(--red); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0 4px; opacity: 0.8; }
     .divider { height: 1px; background: var(--border); margin: 8px 0; }
@@ -375,6 +385,11 @@
   </div>
 
   <div id="errorBox" class="error" style="display:none;"></div>
+  <div class="ext-row">
+    <span class="ext-label">📦 Extensão:</span>
+    <a class="ext-badge firefox" href="https://addons.mozilla.org/pt-BR/firefox/addon/jogos-na-tv-bombacha/" target="_blank" rel="noopener">🦊 Firefox</a>
+    <a class="ext-badge chrome" href="https://chromewebstore.google.com/detail/kmeignocjboilnkdniilajkbkonfidpi/preview?hl=pt-BR&authuser=1" target="_blank" rel="noopener">🌐 Chrome</a>
+  </div>
   <div id="stat" class="stat"></div>
 
   <div class="acc-wrap" id="leaguesWrap" style="display:none;">
