@@ -246,6 +246,12 @@
     /* notif toast */
     .notif-toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-80px); background: #1a1a18; color: white; padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 9999; transition: transform 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
     .notif-toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Esconder no mobile (celular) */
+    @media (max-width: 600px) {
+      .ext-row { display: none !important; }
+      .popup-btn.bell-avise { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -513,7 +519,7 @@
     // botão sino
     var k=alertaKey(g); var temAlerta=!!alertas[k];
     var bellBtn=document.createElement('div');
-    bellBtn.className='popup-btn'+(temAlerta?' bell-on':'');
+    bellBtn.className='popup-btn bell-avise'+(temAlerta?' bell-on':'');
     bellBtn.style.justifyContent='flex-start';
     bellBtn.innerHTML='<span class="popup-btn-icon">'+(temAlerta?'🔕':'🔔')+'</span><span>'+(temAlerta?'Remover alerta deste jogo':'Me avise quando começar!')+'</span>';
     (function(gg){ bellBtn.addEventListener('click',function(){ toggleAlerta(gg); closePopup(); }); })(g);
