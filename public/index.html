@@ -210,7 +210,11 @@
     .bombacha-float:hover .bombacha-float-img { transform: scale(1.1) rotate(5deg); }
     .bombacha-float-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
     .bombacha-label { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.05em; }
-    .chimmarrao-btn { position: fixed; bottom: 22px; left: 16px; z-index: 150; display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#6b3a1f,#8b4e24); color: #f0e8d8; border: none; border-radius: 20px; padding: 8px 14px 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 14px rgba(107,58,31,0.45); transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.03em; }
+    .left-float-stack { position: fixed; bottom: 22px; left: 16px; z-index: 150; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .ferramentas-btn { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg,#1D9E75,#0F6E56); color: #fff; border: none; border-radius: 20px; padding: 9px 14px 9px 11px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 14px rgba(15,110,86,0.38); transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.01em; text-decoration: none; }
+    .ferramentas-btn:hover { transform: scale(1.04); box-shadow: 0 5px 20px rgba(15,110,86,0.55); }
+    .ferramentas-btn small { display: block; font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0; margin-top: 1px; }
+    .chimmarrao-btn { display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#6b3a1f,#8b4e24); color: #f0e8d8; border: none; border-radius: 20px; padding: 8px 14px 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 14px rgba(107,58,31,0.45); transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.03em; }
     .chimmarrao-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(107,58,31,0.6); }
     /* ── Modal doação ── */
     .doar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 400; align-items: flex-end; justify-content: center; }
@@ -419,7 +423,13 @@
   <div id="out"></div>
 </div>
 
-<button class="chimmarrao-btn" onclick="openDoar()">🧉 Me ajude com um chimarrão!</button>
+<div class="left-float-stack">
+  <a class="ferramentas-btn" href="https://viktor1944.github.io/bombacha-ferramentas/" target="_blank" rel="noopener noreferrer" aria-label="Conheça o site Bombacha Ferramentas">
+    <span style="font-size:18px;line-height:1;">🧰</span>
+    <span>Conheça o Bombacha Ferramentas<small>Programas e extensões úteis</small></span>
+  </a>
+  <button class="chimmarrao-btn" onclick="openDoar()">🧉 Me ajude com um chimarrão!</button>
+</div>
 
   <div class="bombacha-label">AO VIVO</div>
 </div>
