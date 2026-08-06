@@ -211,9 +211,18 @@
     .bombacha-float-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
     .bombacha-label { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.05em; }
     .left-float-stack { position: fixed; bottom: 22px; left: 16px; z-index: 150; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-    .ferramentas-btn { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg,#1D9E75,#0F6E56); color: #fff; border: none; border-radius: 20px; padding: 9px 14px 9px 11px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 14px rgba(15,110,86,0.38); transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.01em; text-decoration: none; }
+    .ferramentas-float { position: relative; }
+    .ferramentas-btn { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg,#1D9E75,#0F6E56); color: #fff; border: none; border-radius: 20px; padding: 9px 36px 9px 11px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 14px rgba(15,110,86,0.38); transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.01em; text-decoration: none; }
     .ferramentas-btn:hover { transform: scale(1.04); box-shadow: 0 5px 20px rgba(15,110,86,0.55); }
     .ferramentas-btn small { display: block; font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0; margin-top: 1px; }
+    .ferramentas-close { position: absolute; top: 50%; right: 7px; transform: translateY(-50%); z-index: 2; width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.65); background: rgba(0,0,0,0.22); color: white; font-size: 17px; line-height: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.15s; }
+    .ferramentas-close:hover { background: rgba(0,0,0,0.42); transform: translateY(-50%) scale(1.08); }
+    .ferramentas-config-link { width: 100%; padding: 12px 13px; background: #eefaf6; border: 1.5px solid rgba(29,158,117,0.38); border-radius: var(--radius); color: var(--green-dark); text-decoration: none; display: flex; align-items: center; gap: 10px; transition: background 0.15s, border-color 0.15s; }
+    .ferramentas-config-link:hover { background: #e2f6ef; border-color: var(--green); }
+    .ferramentas-config-icon { font-size: 22px; flex-shrink: 0; }
+    .ferramentas-config-text { min-width: 0; }
+    .ferramentas-config-title { display: block; font-size: 13px; font-weight: 700; }
+    .ferramentas-config-desc { display: block; margin-top: 2px; font-size: 10px; font-weight: 500; color: var(--text3); line-height: 1.35; }
     .chimmarrao-btn { display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#6b3a1f,#8b4e24); color: #f0e8d8; border: none; border-radius: 20px; padding: 8px 14px 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 14px rgba(107,58,31,0.45); transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.03em; }
     .chimmarrao-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(107,58,31,0.6); }
     /* ── Modal doação ── */
@@ -300,6 +309,16 @@
     <div class="cfg-sec">
       <div class="cfg-sec-title">⚠️ Zona de perigo</div>
       <button class="reset-btn" onclick="openConfirm()">🗑️ Resetar o aplicativo para as configurações iniciais</button>
+    </div>
+    <div class="cfg-sec">
+      <div class="cfg-sec-title">🧰 Bombacha Ferramentas</div>
+      <a class="ferramentas-config-link" href="https://viktor1944.github.io/bombacha-ferramentas/" target="_blank" rel="noopener noreferrer">
+        <span class="ferramentas-config-icon">🧰</span>
+        <span class="ferramentas-config-text">
+          <span class="ferramentas-config-title">Conheça o Bombacha Ferramentas</span>
+          <span class="ferramentas-config-desc">Programas, extensões e ferramentas úteis.</span>
+        </span>
+      </a>
     </div>
   </div>
 </div>
@@ -424,10 +443,13 @@
 </div>
 
 <div class="left-float-stack">
-  <a class="ferramentas-btn" href="https://viktor1944.github.io/bombacha-ferramentas/" target="_blank" rel="noopener noreferrer" aria-label="Conheça o site Bombacha Ferramentas">
-    <span style="font-size:18px;line-height:1;">🧰</span>
-    <span>Conheça o Bombacha Ferramentas<small>Programas e extensões úteis</small></span>
-  </a>
+  <div class="ferramentas-float" id="ferramentasFloat">
+    <a class="ferramentas-btn" href="https://viktor1944.github.io/bombacha-ferramentas/" target="_blank" rel="noopener noreferrer" aria-label="Conheça o site Bombacha Ferramentas">
+      <span style="font-size:18px;line-height:1;">🧰</span>
+      <span>Conheça o Bombacha Ferramentas<small>Programas e extensões úteis</small></span>
+    </a>
+    <button class="ferramentas-close" type="button" onclick="dismissFerramentas(event)" aria-label="Não mostrar mais esta recomendação" title="Não mostrar mais">×</button>
+  </div>
   <button class="chimmarrao-btn" onclick="openDoar()">🧉 Me ajude com um chimarrão!</button>
 </div>
 
@@ -487,7 +509,7 @@
   function dismissInstall(){ document.getElementById('installBanner').classList.remove('show'); ls('install_dismissed','1'); }
   function openConfirm(){ document.getElementById('confirmOverlay').classList.add('open'); }
   function closeConfirm(){ document.getElementById('confirmOverlay').classList.remove('open'); }
-  function doReset(){ try{ ['seen2','colors2','off2','removed2','favs','nofem','banner_closed','install_dismissed','alertas'].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){} closeConfirm(); closeConfig(); seen={}; leagueColors={}; removedColors={}; favTimes=[]; noFem=false; alertas={}; active=new Set(); allSeenLeagues=new Set(); document.getElementById('banner').style.display=''; load(); }
+  function doReset(){ try{ ['seen2','colors2','off2','removed2','favs','nofem','banner_closed','install_dismissed','alertas','ferramentas_dismissed'].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){} closeConfirm(); closeConfig(); seen={}; leagueColors={}; removedColors={}; favTimes=[]; noFem=false; alertas={}; active=new Set(); allSeenLeagues=new Set(); document.getElementById('banner').style.display=''; applyFerramentasVisibility(); load(); }
 
   var DEFAULT_COLORS=[{names:['copa do mundo','fifa world cup'],color:'#f9c000'},{names:['champions league','uefa champions league'],color:'#6a1b9a'},{names:['libertadores','conmebol libertadores'],color:'#00b0ff'},{names:['sul-americana','sulamericana','conmebol sul-americana'],color:'#00838f'},{names:['libertadores de futebol de areia'],color:'#1565c0'},{names:['brasileirão série a','brasileirao serie a','brasileirão','brasileirao'],color:'#009c3b'},{names:['brasileirão série b','brasileirao serie b'],color:'#f9a825'},{names:['premier league'],color:'#4a148c'},{names:['la liga','laliga'],color:'#ee1d23'},{names:['bundesliga'],color:'#e65100'},{names:['serie a'],color:'#0277bd'},{names:['copa do brasil'],color:'#558b2f'},{names:['ligue 1'],color:'#283593'}];
   function norm(n){ return (n||'').replace(/\s*\(.*?\)/g,'').trim().toLowerCase(); }
@@ -518,6 +540,9 @@
   function removeLeague(k){ k=k.toLowerCase(); delete leagueColors[k]; removedColors[k]=true; active.delete(k); savePref(); renderColorSelect(); render(); }
   function reativarLeague(k){ k=k.toLowerCase(); delete removedColors[k]; active.add(k); savePref(); render(); }
   function closeBanner(){ var b=document.getElementById('banner'); if(b){b.style.display='none'; ls('banner_closed','1');} }
+  function loadFerramentasDismissed(){ return ls('ferramentas_dismissed')==='1'; }
+  function applyFerramentasVisibility(){ var el=document.getElementById('ferramentasFloat'); if(el) el.style.display=loadFerramentasDismissed()?'none':''; }
+  function dismissFerramentas(event){ if(event){ event.preventDefault(); event.stopPropagation(); } ls('ferramentas_dismissed','1'); applyFerramentasVisibility(); }
   function toggleAcc(){ var body=document.getElementById('accBody'),arrow=document.getElementById('accArrow'),isOpen=body.classList.contains('open'); body.className='acc-body'+(isOpen?'':' open'); arrow.className='acc-arrow'+(isOpen?'':' open'); }
   function openConfig(){ document.getElementById('overlay').classList.add('open'); document.getElementById('configPanel').classList.add('open'); renderColorSelect(); }
   function closeConfig(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('configPanel').classList.remove('open'); }
@@ -604,6 +629,7 @@
     h+='</div>'; document.getElementById('out').innerHTML=h;
   }
   async function load(){ var btn=document.getElementById('refBtn'),icon=document.getElementById('refIcon'); btn.disabled=true; icon.className='spin'; document.getElementById('errorBox').style.display='none'; document.getElementById('out').innerHTML='<div class="loading"><div class="loading-spinner"></div><div>Bombacha buscando os jogos...</div></div>'; document.getElementById('leaguesWrap').style.display='none'; document.getElementById('stat').textContent=''; try{ var res=await fetch('/api/jogos'); if(!res.ok) throw new Error('Erro '+res.status); var json=await res.json(); data.hoje=json.hoje||[]; data.amanha=json.amanha||[]; data.depois=json.depois||[]; noFem=loadNoFem(); favTimes=loadFavs(); leagueColors=loadColors(); removedColors=loadRemoved(); seen=loadSeen(); alertas=loadAlertas(); accumulate(data.hoje); accumulate(data.amanha); accumulate(data.depois); buildActive(); if(json.labels){ document.getElementById('tH').textContent=json.labels.hoje; document.getElementById('tA').textContent=json.labels.amanha; document.getElementById('tD').textContent=json.labels.depois; document.getElementById('tH').className='tab'+(tab==='hoje'?' on':''); document.getElementById('tA').className='tab'+(tab==='amanha'?' on':''); document.getElementById('tD').className='tab'+(tab==='depois'?' on':''); } if(json.updatedAt){ var d=new Date(json.updatedAt); document.getElementById('updatedAt').textContent='com Bombacha · atualizado '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); } if(loadBannerClosed()) document.getElementById('banner').style.display='none'; renderFavTags(); render(); document.getElementById('accBody').className='acc-body'; document.getElementById('accArrow').className='acc-arrow'; }catch(e){ document.getElementById('out').innerHTML=''; document.getElementById('errorBox').style.display='block'; document.getElementById('errorBox').textContent='Erro ao buscar jogos: '+e.message; } btn.disabled=false; icon.className=''; }
+  applyFerramentasVisibility();
   load(); setInterval(load,30*60*1000); setInterval(render,5*60*1000);
 </script>
 </body>
